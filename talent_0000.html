@@ -692,6 +692,17 @@ const S = {
 function go(pid){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   $(pid).classList.add('on');
+  
+  // ⭐ 页面显示后再绘图（SVG 尺寸已准备好）
+  // ⭐ 在这里顺便刷新家长中心图表
+  //setTimeout(drawParentCharts, 50);
+  // ⭐ 关键：让布局完全渲染后再画图
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(drawParentCharts);
+    });
+  });
+  
   document.querySelectorAll('.ntab').forEach(t=>{
     t.classList.toggle('on', t.dataset.p === pid);
   });
@@ -1579,14 +1590,6 @@ function updateStats(){
   $('hLv').textContent = 'Lv'+S.lv;
   $('hXp').textContent = S.xp+' XP';
   
-  // ⭐ 在这里顺便刷新家长中心图表
-  //setTimeout(drawParentCharts, 50);
-  // ⭐ 关键：让布局完全渲染后再画图
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(drawParentCharts);
-    });
-  });
 }
 
 
