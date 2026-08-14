@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>🎈 数学乐园 · 一年级浅奥 · 方格填数（5,6,7,8）</title>
+
+<!-- QRCode.js -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fffaf0;
+  margin: 0;
+  padding: 20px;
+}
+h1 {
+  color: #ff9800;
+  text-align: center;
+}
+h2 {
+  color: #333;
+}
+.board {
+  text-align: center;
+  margin-top: 20px;
+}
+.eq-row {
+  font-size: 28px;
+  margin: 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.square {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #333;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 26px;
+  font-weight: bold;
+  background: #ffffff;
+}
+.op {
+  font-size: 28px;
+}
+.num-panel {
+  text-align: center;
+  margin-top: 20px;
+}
+.num-btn {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  margin: 0 6px;
+  border-radius: 50%;
+  background: #2196f3;
+  color: #fff;
+  font-size: 20px;
+  line-height: 40px;
+  cursor: pointer;
+  user-select: none;
+}
+.num-btn.disabled {
+  background: #b0bec5;
+  cursor: default;
+}
+.control {
+  text-align: center;
+  margin-top: 15px;
+}
+.btn {
+  display: inline-block;
+  padding: 6px 12px;
+  margin: 0 6px;
+  border-radius: 6px;
+  background: #4caf50;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn.secondary {
+  background: #9e9e9e;
+}
+.msg {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 16px;
+  min-height: 24px;
+}
+.msg.ok {
+  color: #2e7d32;
+}
+.msg.err {
+  color: #c62828;
+}
+.ai-block {
+  margin-top: 25px;
+  padding: 15px;
+  background: #e3f2fd;
+  border-left: 5px solid #2196f3;
+}
+.ai-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.ai-content {
+  display: none;
+  margin-top: 8px;
+}
+.link {
+  color: #1976d2;
+  cursor: pointer;
+  text-decoration: underline;
+}
+#voiceExplainBtn {
+  margin-top:10px;
+  padding:6px 12px;
+  background:#ff9800;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+#qrArea {
+  text-align:center;
+  margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎈 数学乐园 · 一年级浅奥 · 方格填数</h1>
+
+<h2>题目</h2>
+<p>把 <b>5、6、7、8</b> 这四个数字分别填入方格里（每个数只能用一次），使等式成立：</p>
+
+<div class="board">
+  <div class="eq-row">
+    <span class="square" data-pos="0"></span>
+    <span class="op">+</span>
+    <span class="square" data-pos="1"></span>
+    <span class="op">−</span>
+    <span class="square" data-pos="2"></span>
+    <span class="op">=</span>
+    <span class="square" data-pos="3"></span>
+  </div>
+</div>
+
+<div class="num-panel">
+  <div class="num-btn" data-val="5">5</div>
+  <div class="num-btn" data-val="6">6</div>
+  <div class="num-btn" data-val="7">7</div>
+  <div class="num-btn" data-val="8">8</div>
+</div>
+
+<div class="control">
+  <span class="btn" id="checkBtn">检查答案</span>
+  <span class="btn secondary" id="resetBtn">清空重做</span>
+</div>
+
+<div class="msg" id="msgBox"></div>
+
+<div class="ai-block">
+  <div class="ai-title">
+    AI 解题思路分析
+    （<span class="link" id="toggleExplain">不会？点我讲解</span>）
+  </div>
+
+  <button id="voiceExplainBtn">🔊 听语音讲解</button>
+
+  <div class="ai-content" id="aiContent">
+    <p>原式是：</p>
+    <p><b>A + B − C = D</b></p>
+    <p>我们可以把它变形为：</p>
+    <p><b>A + B = C + D</b></p>
+    <p>这样就变成：用 5、6、7、8 这四个数，分成两组，使两组的和相等。</p>
+    <p>观察可以发现：</p>
+    <p><b>5 + 8 = 13</b>，<b>6 + 7 = 13</b></p>
+    <p>所以只要把数字分成：</p>
+    <p><b>（5，8） 和 （6，7）</b></p>
+    <p>就一定能组成正确的等式。</p>
+    <p>例如：</p>
+    <p>5 + 8 − 6 = 7</p>
+    <p>8 + 5 − 6 = 7</p>
+    <p>6 + 7 − 5 = 8</p>
+    <p>7 + 6 − 5 = 8</p>
+    <p>以及：</p>
+    <p>5 + 8 − 7 = 6</p>
+    <p>8 + 5 − 7 = 6</p>
+    <p>6 + 7 − 8 = 5</p>
+    <p>7 + 6 − 8 = 5</p>
+    <p>一共 <b>8 种不同填法</b>，答案不是唯一的。</p>
+  </div>
+</div>
+
+<!-- 错题本二维码 -->
+<div id="qrArea">
+  <canvas id="qrCanvas"></canvas>
+</div>
+
+<script>
+(function() {
+  const squares = Array.from(document.querySelectorAll('.square'));
+  const numBtns = Array.from(document.querySelectorAll('.num-btn'));
+  const msgBox = document.getElementById('msgBox');
+  const checkBtn = document.getElementById('checkBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const toggleExplain = document.getElementById('toggleExplain');
+  const aiContent = document.getElementById('aiContent');
+
+  // 点击数字填入方格
+  numBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('disabled')) return;
+      const val = btn.getAttribute('data-val');
+      const emptySquare = squares.find(sq => sq.textContent === '');
+      if (!emptySquare) return;
+      emptySquare.textContent = val;
+      btn.classList.add('disabled');
+    });
+  });
+
+  // 检查答案
+  checkBtn.addEventListener('click', () => {
+    const vals = squares.map(sq => sq.textContent);
+    if (vals.some(v => v === '')) {
+      showMsg('请先把 4 个方格都填满再检查哦～', false);
+      return;
+    }
+    const nums = vals.map(v => parseInt(v, 10));
+    const [A, B, C, D] = nums;
+    const left = A + B - C;
+
+    if (left === D) {
+      showMsg(`✅ 正确！${A} + ${B} − ${C} = ${D}`, true);
+      clearQR();
+    } else {
+      showMsg(`❌ 不成立：${A} + ${B} − ${C} ≠ ${D}，可以试试换个填法。`, false);
+      generateQR(`方格填数错题：${A}+${B}-${C}=${D}（错误）`);
+    }
+  });
+
+  // 清空重做
+  resetBtn.addEventListener('click', () => {
+    squares.forEach(sq => sq.textContent = '');
+    numBtns.forEach(btn => btn.classList.remove('disabled'));
+    msgBox.textContent = '';
+    msgBox.className = 'msg';
+    clearQR();
+  });
+
+  function showMsg(text, ok) {
+    msgBox.textContent = text;
+    msgBox.className = 'msg ' + (ok ? 'ok' : 'err');
+  }
+
+  // AI 解析展开
+  toggleExplain.addEventListener('click', () => {
+    const visible = aiContent.style.display === 'block';
+    aiContent.style.display = visible ? 'none' : 'block';
+  });
+
+  // 语音讲解
+  document.getElementById("voiceExplainBtn").addEventListener("click", () => {
+    const text = `
+    这个方格填数题的关键，是把 A 加 B 减 C 等于 D，
+    转换成 A 加 B 等于 C 加 D。
+    然后观察数字五、六、七、八，
+    可以发现五加八等于十三，
+    六加七也等于十三。
+    所以只要把数字分成两组，
+    五和八一组，
+    六和七一组，
+    就一定能组成正确的等式。
+    因为顺序可以互换，所以一共有八种不同的填法。
+    `;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "zh-CN";
+    speechSynthesis.speak(utter);
+  });
+
+  // 生成二维码
+  function generateQR(text) {
+    QRCode.toCanvas(document.getElementById("qrCanvas"), text, { width: 160 }, function (error) {
+      if (error) console.error(error);
+    });
+  }
+
+  // 清空二维码
+  function clearQR() {
+    const canvas = document.getElementById("qrCanvas");
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+})();
+</script>
+
+</body>
+</html>
+
