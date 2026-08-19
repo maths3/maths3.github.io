@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>🎮 数学乐园 · 算24点 · math-practice_0004</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  font-family: system-ui;
+  background: #f5f7fb;
+  margin: 0;
+  padding: 0;
+}
+header {
+  background: #4b7bec;
+  color: #fff;
+  padding: 12px 16px;
+  text-align: center;
+  animation: fadeIn 0.6s ease;
+}
+main {
+  max-width: 720px;
+  margin: 16px auto;
+  padding: 0 12px;
+}
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  margin-bottom: 16px;
+  animation: fadeInUp 0.5s ease;
+}
+
+/* 数字按钮：蓝色主题 */
+.num-btn {
+  padding: 10px 16px;
+  background: #dfe8ff;
+  border: 2px solid #4b7bec;
+  border-radius: 8px;
+  font-size: 20px;
+  margin: 6px;
+  cursor: pointer;
+  color: #1f3b8f;
+  transition: transform 0.15s ease;
+}
+.num-btn:hover {
+  transform: scale(1.08);
+}
+.num-btn.disabled {
+  background: #e8e8e8;
+  border-color: #bfbfbf;
+  color: #999;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 运算符按钮：淡紫色 */
+.op-btn {
+  padding: 8px 12px;
+  background: #f0e9ff;
+  border: 1px solid #c7b7ff;
+  border-radius: 6px;
+  margin: 4px;
+  cursor: pointer;
+  color: #4b3b9f;
+  transition: transform 0.15s ease;
+}
+.op-btn:hover {
+  transform: scale(1.1);
+}
+
+/* 主按钮 */
+.btn-primary {
+  background: #4b7bec;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.btn-primary:hover {
+  transform: scale(1.05);
+}
+
+/* 次按钮 */
+.btn-secondary {
+  background: #e1e6f5;
+  color: #333;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.btn-secondary:hover {
+  transform: scale(1.05);
+}
+
+#expr {
+  width: 100%;
+  padding: 10px;
+  font-size: 18px;
+  border-radius: 6px;
+  border: 1px solid #ccd2e3;
+}
+#status {
+  margin-top: 10px;
+  font-size: 16px;
+}
+.ok { color: #1e9d4c; }
+.err { color: #d63031; }
+
+.answer-item {
+  background: #f0f3ff;
+  padding: 8px;
+  border-radius: 6px;
+  margin: 6px 0;
+  font-size: 16px;
+}
+
+.small-tip {
+  font-size: 13px;
+  color: #666;
+}
+
+.ai-link {
+  color: #4b7bec;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+/* 倒计时条 */
+#timerBar {
+  width: 100%;
+  height: 10px;
+  background: #e1e6f5;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+#timerInner {
+  height: 100%;
+  width: 100%;
+  background: #4b7bec;
+  transition: width 1s linear;
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 烟花动画（正确时） */
+.firework {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  background: #ffdd57;
+  border-radius: 50%;
+  animation: explode 0.8s ease-out forwards;
+}
+@keyframes explode {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(8); opacity: 0; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>🎮 数学乐园 · 算24点</h1>
+  <p>点击数字与运算符，组成算式，使结果等于 24</p>
+</header>
+
+<main>
+
+<!-- 题目区 -->
+<div class="card">
+  <h2>题目区 <span id="difficultyTag"></span></h2>
+  <div id="numArea"></div>
+
+  <button class="btn-secondary" onclick="newQuestion()">🎲 换一题</button>
+
+  <div id="timerBar">
+    <div id="timerInner"></div>
+  </div>
+
+  <p class="small-tip">每个数字只能用一次，可以使用 + − × ÷ 和括号。</p>
+
+  <div id="qrcodeArea"></div>
+</div>
+
+<!-- 作答区 -->
+<div class="card">
+  <h2>作答区</h2>
+  <input id="expr" placeholder="点击数字和符号自动输入…" />
+  <div>
+    <button class="op-btn" onclick="insertOp('+')">+</button>
+    <button class="op-btn" onclick="insertOp('-')">-</button>
+    <button class="op-btn" onclick="insertOp('*')">×</button>
+    <button class="op-btn" onclick="insertOp('/')">÷</button>
+    <button class="op-btn" onclick="insertOp('(')">(</button>
+    <button class="op-btn" onclick="insertOp(')')">)</button>
+  </div>
+
+  <button class="btn-primary" onclick="checkExpr()">✅ 检查是否等于 24</button>
+  <button class="btn-secondary" onclick="clearExpr()">🧹 清空</button>
+  <button class="btn-secondary" onclick="undo()">↩️ 撤销</button>
+
+  <div id="status"></div>
+</div>
+
+<!-- AI 解题思路分析 -->
+<div class="card">
+  <h2>AI 解题思路分析</h2>
+  <span class="ai-link" onclick="showAiExplain()">🤖 不会？点我讲解</span>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <span class="ai-link" onclick="showAllSolutions()">📚 看全部解法</span>
+
+  <p class="small-tip">只有在你点击上面的链接时，才会计算并展示本题的所有 24 点解法。</p>
+
+  <div id="aiExplain"></div>
+</div>
+
+<!-- 本题所有正确答案 -->
+<div class="card">
+  <h2>本题所有正确答案</h2>
+  <div id="answerList">（尚未计算，点击上面的「看全部解法」后才会显示）</div>
+</div>
+
+</main>
+
+<script>
+let nums = [];
+let usedNumbers = [];
+let cachedSolutions = null;
+
+let timer = null;
+let timerSeconds = 30; // 每题倒计时秒数
+let timerLeft = timerSeconds;
+
+/* ------------------ 数字按钮渲染 ------------------ */
+function renderNums() {
+  const area = document.getElementById("numArea");
+  area.innerHTML = "";
+  nums.forEach((n, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "num-btn";
+    btn.textContent = n;
+    btn.dataset.index = idx;
+    btn.onclick = () => useNumber(btn, n);
+    area.appendChild(btn);
+  });
+}
+
+/* ------------------ 数字使用与撤销 ------------------ */
+function useNumber(btn, n) {
+  if (btn.classList.contains("disabled")) return;
+  insertOp(n);
+  btn.classList.add("disabled");
+  usedNumbers.push(btn);
+}
+
+function undo() {
+  const expr = document.getElementById("expr");
+  if (usedNumbers.length === 0) return;
+
+  expr.value = expr.value.replace(/\d+$/, "");
+
+  const btn = usedNumbers.pop();
+  btn.classList.remove("disabled");
+}
+
+/* ------------------ 换题 ------------------ */
+function newQuestion() {
+  nums = [];
+  for (let i = 0; i < 4; i++) nums.push(Math.floor(Math.random() * 9) + 1);
+
+  usedNumbers = [];
+  cachedSolutions = null;
+
+  renderNums();
+  document.getElementById("expr").value = "";
+  document.getElementById("status").innerHTML = "";
+  document.getElementById("aiExplain").innerHTML = "";
+  document.getElementById("answerList").innerHTML = "（尚未计算，点击上面的「看全部解法」后才会显示）";
+
+  startTimer();
+  // 先算一遍难度，再生成二维码（难度标签需要解法数量）
+  solve24All();
+  generateQRCode();
+}
+
+/* ------------------ 输入操作 ------------------ */
+function insertOp(op) {
+  const inp = document.getElementById("expr");
+  inp.value += op;
+}
+
+function clearExpr() {
+  document.getElementById("expr").value = "";
+  document.getElementById("status").innerHTML = "";
+}
+
+/* ------------------ 检查表达式 ------------------ */
+function checkExpr() {
+  const exprRaw = document.getElementById("expr").value;
+  const expr = exprRaw.replace(/×/g,"*").replace(/÷/g,"/");
+  if (!expr.trim()) {
+    setStatus("请输入算式", "err");
+    return;
+  }
+
+  const used = expr.match(/\d+/g)?.map(x=>parseInt(x)) || [];
+  const sortedUsed = used.slice().sort((a,b)=>a-b);
+  const sortedNums = nums.slice().sort((a,b)=>a-b);
+
+  if (JSON.stringify(sortedUsed) !== JSON.stringify(sortedNums)) {
+    flashError();
+    setStatus("必须使用题目给出的四个数字，每个只能用一次", "err");
+    return;
+  }
+
+  try {
+    const val = Function("return ("+expr+")")();
+    if (Math.abs(val - 24) < 1e-9) {
+      setStatus("🎉 正确！结果是 24", "ok");
+      firework();
+    } else {
+      flashError();
+      setStatus("结果是 "+val+"，不是 24", "err");
+    }
+  } catch {
+    flashError();
+    setStatus("表达式错误，请检查括号与运算符", "err");
+  }
+}
+
+function setStatus(msg, type) {
+  const s = document.getElementById("status");
+  s.textContent = msg;
+  s.className = type;
+}
+
+/* ------------------ 错误闪烁动画 ------------------ */
+function flashError() {
+  const card = document.querySelector(".card");
+  card.style.animation = "none";
+  void card.offsetWidth;
+  card.style.animation = "flash 0.4s ease";
+
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @keyframes flash {
+      0% { background: #ffe5e5; }
+      100% { background: #fff; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+/* ------------------ 烟花动画（正确时） ------------------ */
+function firework() {
+  for (let i = 0; i < 8; i++) {
+    const fw = document.createElement("div");
+    fw.className = "firework";
+    fw.style.left = (Math.random() * window.innerWidth) + "px";
+    fw.style.top = (Math.random() * window.innerHeight) + "px";
+    document.body.appendChild(fw);
+    setTimeout(() => fw.remove(), 800);
+  }
+}
+
+/* ------------------ 倒计时 ------------------ */
+function startTimer() {
+  timerLeft = timerSeconds;
+  updateTimerBar();
+
+  if (timer) clearInterval(timer);
+
+  timer = setInterval(() => {
+    timerLeft--;
+    updateTimerBar();
+
+    if (timerLeft <= 0) {
+      clearInterval(timer);
+      setStatus("⏰ 时间到！请点击换一题", "err");
+      flashError();
+    }
+  }, 1000);
+}
+
+function updateTimerBar() {
+  const bar = document.getElementById("timerInner");
+  const percent = (timerLeft / timerSeconds) * 100;
+  bar.style.width = percent + "%";
+}
+
+/* ------------------ 稳定版 24 点求解器 ------------------ */
+function solve24All() {
+  if (cachedSolutions) return cachedSolutions;
+
+  const ops = ["+","-","*","/"];
+  const results = new Set();
+
+  function calc(a,b,op){
+    if(op==="+") return a+b;
+    if(op==="-") return a-b;
+    if(op==="*") return a*b;
+    if(op==="/") return b===0 ? null : a/b;
+  }
+
+  const arr = nums.slice();
+  const perms = [];
+  for (let i=0;i<4;i++){
+    for (let j=0;j<4;j++){
+      if(j===i) continue;
+      for (let k=0;k<4;k++){
+        if(k===i || k===j) continue;
+        for (let l=0;l<4;l++){
+          if(l===i || l===j || l===k) continue;
+          perms.push([arr[i],arr[j],arr[k],arr[l]]);
+        }
+      }
+    }
+  }
+
+  for (const [a,b,c,d] of perms){
+    for (const op1 of ops){
+      for (const op2 of ops){
+        for (const op3 of ops){
+
+          let t1 = calc(a,b,op1);
+          if(t1!==null){
+            let t2 = calc(t1,c,op2);
+            if(t2!==null){
+              let t3 = calc(t2,d,op3);
+              if(t3!==null && Math.abs(t3-24)<1e-9){
+                results.add(`((${a}${op1}${b})${op2}${c})${op3}${d}`);
+              }
+            }
+          }
+
+          t1 = calc(b,c,op2);
+          if(t1!==null){
+            t2 = calc(a,t1,op1);
+            if(t2!==null){
+              let t3 = calc(t2,d,op3);
+              if(t3!==null && Math.abs(t3-24)<1e-9){
+                results.add(`(${a}${op1}(${b}${op2}${c}))${op3}${d}`);
+              }
+            }
+          }
+
+          t1 = calc(b,c,op2);
+          if(t1!==null){
+            t2 = calc(t1,d,op3);
+            if(t2!==null){
+              let t3 = calc(a,t2,op1);
+              if(t3!==null && Math.abs(t3-24)<1e-9){
+                results.add(`${a}${op1}((${b}${op2}${c})${op3}${d})`);
+              }
+            }
+          }
+
+          t1 = calc(c,d,op3);
+          if(t1!==null){
+            t2 = calc(b,t1,op2);
+            if(t2!==null){
+              let t3 = calc(a,t2,op1);
+              if(t3!==null && Math.abs(t3-24)<1e-9){
+                results.add(`${a}${op1}(${b}${op2}(${c}${op3}${d}))`);
+              }
+            }
+          }
+
+          t1 = calc(a,b,op1);
+          t2 = calc(c,d,op3);
+          if(t1!==null && t2!==null){
+            let t3 = calc(t1,t2,op2);
+            if(t3!==null && Math.abs(t3-24)<1e-9){
+              results.add(`(${a}${op1}${b})${op2}(${c}${op3}${d})`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  cachedSolutions = Array.from(results).map(s =>
+    s.replace(/\*/g,"×").replace(/\//g,"÷")
+  );
+
+  updateDifficulty(cachedSolutions.length);
+
+  return cachedSolutions;
+}
+
+/* ------------------ 自动难度等级 ------------------ */
+function updateDifficulty(count) {
+  const tag = document.getElementById("difficultyTag");
+
+  let level = "";
+  if (count === 0) level = "❌ 无解题";
+  else if (count <= 2) level = "⭐ 简单";
+  else if (count <= 6) level = "⭐⭐ 中等";
+  else if (count <= 15) level = "⭐⭐⭐ 困难";
+  else level = "⭐⭐⭐⭐ 地狱级";
+
+  tag.textContent = level;
+}
+
+/* ------------------ AI 解题区 ------------------ */
+function showAiExplain() {
+  const explainDiv = document.getElementById("aiExplain");
+  const sols = solve24All();
+
+  if (sols.length === 0) {
+    explainDiv.innerHTML = "❌ 这组数字无解。";
+    return;
+  }
+
+  const sample = sols.slice(0, Math.min(3, sols.length));
+  explainDiv.innerHTML = `
+    <p>这道题可以这样思考：</p>
+    <ul>
+      ${sample.map(s => `<li>一种解法：<code>${s}</code></li>`).join("")}
+    </ul>
+    <p class="small-tip">如果还想看所有解法，可以点击上面的「看全部解法」。</p>
+  `;
+}
+
+function showAllSolutions() {
+  const sols = solve24All();
+  const list = document.getElementById("answerList");
+  list.innerHTML = "";
+
+  if (sols.length === 0) {
+    list.innerHTML = "❌ 本题无解";
+    return;
+  }
+
+  sols.forEach(a=>{
+    const div = document.createElement("div");
+    div.className = "answer-item";
+    div.textContent = a;
+    list.appendChild(div);
+  });
+}
+
+/* ------------------ 分享二维码 ------------------ */
+function generateQRCode() {
+  const area = document.getElementById("qrcodeArea");
+  area.innerHTML = "";
+
+  const text = `24点题目：${nums.join(",")} 难度：${document.getElementById("difficultyTag").textContent}`;
+
+  const img = document.createElement("img");
+  img.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(text);
+  img.style.marginTop = "10px";
+  img.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+  img.style.borderRadius = "6px";
+
+  const label = document.createElement("div");
+  label.textContent = "📱 分享此题给朋友";
+  label.className = "small-tip";
+  label.style.marginTop = "4px";
+
+  area.appendChild(img);
+  area.appendChild(label);
+}
+
+/* ------------------ 初始化 ------------------ */
+newQuestion();
+</script>
+
+</body>
+</html>
