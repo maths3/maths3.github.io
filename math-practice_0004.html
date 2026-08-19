@@ -11,7 +11,7 @@ main{max-width:760px;margin:16px auto;padding:0 12px;}
 .card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,.06);margin-bottom:16px;}
 .num-btn{padding:6px;background:#dfe8ff;border:2px solid #4b7bec;border-radius:8px;margin:6px;cursor:pointer;}
 .num-btn.disabled{background:#e8e8e8;border-color:#bfbfbf;cursor:not-allowed;}
-.op-btn{padding:8px 12px;background:#f0e9ff;border:1px solid #c7b7ff;border-radius:6px;margin:4px;cursor:pointer;}
+.op-btn{padding:6px;background:#f0e9ff;border:1px solid #c7b7ff;border-radius:6px;margin:4px;cursor:pointer;}
 .btn-primary{background:#4b7bec;color:#fff;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;}
 .btn-secondary{background:#e1e6f5;color:#333;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;}
 #expr{width:100%;padding:12px;font-size:20px;border-radius:10px;border:2px solid #4b7bec;}
@@ -124,8 +124,8 @@ function renderNums(){
     }else{
       const img=document.createElement("img");
       img.src=randomCardImage(n);
-      img.style.width="50px";
-      img.style.height="70px";
+      img.style.width="60px";
+      img.style.height="80px";
       img.style.borderRadius="6px";
       img.style.boxShadow="0 2px 6px rgba(0,0,0,0.2)";
       btn.appendChild(img);
@@ -146,8 +146,8 @@ function renderInputButtons(){
     }else{
       const img=document.createElement("img");
       img.src=randomCardImage(n);
-      img.style.width="40px";
-      img.style.height="60px";
+      img.style.width="60px";
+      img.style.height="80px";
       img.style.borderRadius="6px";
       img.style.boxShadow="0 2px 6px rgba(0,0,0,0.2)";
       btn.appendChild(img);
