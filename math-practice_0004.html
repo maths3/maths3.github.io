@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>🎮 数学乐园 · 扑克牌 24 点 · math-practice_0006</title>
+<title>🎮 数学乐园 · 扑克牌 24 点 · math-practice_0004 · 新布局</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body{font-family:system-ui;background:#f5f7fb;margin:0;}
@@ -14,13 +14,37 @@ main{max-width:760px;margin:16px auto;padding:0 12px;}
 .op-btn{padding:6px;background:#f0e9ff;border:1px solid #c7b7ff;border-radius:6px;margin:4px;cursor:pointer;}
 .btn-primary{background:#4b7bec;color:#fff;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;}
 .btn-secondary{background:#e1e6f5;color:#333;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;}
-#expr{width:100%;padding:12px;font-size:20px;border-radius:10px;border:2px solid #4b7bec;}
+#expr{width:30%;padding:12px;font-size:20px;border-radius:10px;border:2px solid #4b7bec;}
 #timerBar{width:100%;height:8px;background:#e1e6f5;border-radius:6px;overflow:hidden;margin-top:10px;}
 #timerInner{height:100%;width:100%;background:#4b7bec;transition:width 1s linear;}
 .small-tip{font-size:13px;color:#666;}
 .ai-link{color:#4b7bec;cursor:pointer;text-decoration:underline;font-size:14px;}
 .firework{position:fixed;width:6px;height:6px;background:#ffdd57;border-radius:50%;animation:explode .8s ease-out forwards;}
 @keyframes explode{from{transform:scale(1);opacity:1;}to{transform:scale(8);opacity:0;}}
+.num-row, .op-row{
+  display:flex;
+  flex-wrap:nowrap; /* ← 不允许换行 */
+  gap:0px;
+  margin-top:12px;
+  align-items:center;
+  overflow-x:auto; /* ← 如果太宽，允许横向滚动 */
+  justify-content:flex-start;
+}
+
+.num-btn{
+  flex-shrink:0;
+}
+
+.card .op-row{
+  display:flex !important;   /* ← 关键修复点 */
+}
+
+.op-btn{
+  padding:4px 8px;
+  font-size:16px;
+  margin:4px;
+}
+
 </style>
 </head>
 <body>
@@ -30,38 +54,36 @@ main{max-width:760px;margin:16px auto;padding:0 12px;}
 </header>
 
 <main>
+<!-- 题目区 -->
+<div class="card">
+  <h2>题目区 <span id="difficultyTag"></span></h2>
+  <div id="numArea" class="num-row"></div>
+  <button class="btn-secondary" onclick="newQuestion()">🎲 换一题</button>
+  <button class="btn-secondary" onclick="toggleCardMode()">🃏 切换数字/扑克牌显示</button>
+  <div id="timerBar"><div id="timerInner"></div></div>
+  <p class="small-tip">每个数字只能用一次，可以使用 + − × ÷ 和括号。</p>
+</div>
 
 <!-- 作答区 -->
 <div class="card">
   <h2>作答区</h2>
   <input id="expr" placeholder="点击数字和符号自动输入…" />
-  <h3>数字按钮（1～13）</h3>
-  <div id="inputNumArea"></div>
-  <h3>运算符</h3>
-  <div>
+  <div class="op-row">
     <button class="op-btn" onclick="insertOp('+')">+</button>
     <button class="op-btn" onclick="insertOp('-')">-</button>
-    <button class="op-btn" onclick="insertOp('*')">×</button>
-    <button class="op-btn" onclick="insertOp('/')">÷</button>
+    <button class="op-btn" onclick="insertOp('×')">×</button>
+    <button class="op-btn" onclick="insertOp('÷')">÷</button>
     <button class="op-btn" onclick="insertOp('(')">(</button>
     <button class="op-btn" onclick="insertOp(')')">)</button>
-  </div>
+</div>
+
+
   <div style="margin-top:12px;">
     <button class="btn-primary" onclick="checkExpr()">✅ 检查是否等于 24</button>
     <button class="btn-secondary" onclick="clearExpr()">🧹 清空</button>
     <button class="btn-secondary" onclick="undo()">↩️ 撤销</button>
   </div>
   <div id="status"></div>
-</div>
-
-<!-- 题目区 -->
-<div class="card">
-  <h2>题目区 <span id="difficultyTag"></span></h2>
-  <button class="btn-secondary" onclick="toggleCardMode()">🃏 切换数字/扑克牌显示</button>
-  <div id="numArea"></div>
-  <button class="btn-secondary" onclick="newQuestion()">🎲 换一题</button>
-  <div id="timerBar"><div id="timerInner"></div></div>
-  <p class="small-tip">每个数字只能用一次，可以使用 + − × ÷ 和括号。</p>
 </div>
 
 <!-- 分享 -->
@@ -108,8 +130,7 @@ function randomCardImage(n){
 
 function toggleCardMode(){
   cardMode=(cardMode==="number")?"poker":"number";
-  renderNums();
-  renderInputButtons();
+  renderNums();  // 只更新题目区
 }
 
 function renderNums(){
@@ -133,28 +154,6 @@ function renderNums(){
     btn.onclick=()=>useNumber(btn,n);
     area.appendChild(btn);
   });
-}
-
-function renderInputButtons(){
-  const area=document.getElementById("inputNumArea");
-  area.innerHTML="";
-  for(let n=1;n<=13;n++){
-    const btn=document.createElement("button");
-    btn.className="op-btn";
-    if(cardMode==="number"){
-      btn.textContent=n;
-    }else{
-      const img=document.createElement("img");
-      img.src=randomCardImage(n);
-      img.style.width="60px";
-      img.style.height="80px";
-      img.style.borderRadius="6px";
-      img.style.boxShadow="0 2px 6px rgba(0,0,0,0.2)";
-      btn.appendChild(img);
-    }
-    btn.onclick=()=>insertOp(n);
-    area.appendChild(btn);
-  }
 }
 
 function useNumber(btn,n){
@@ -388,7 +387,6 @@ function newQuestion(){
   usedButtons=[];
   cachedSolutions=null;
   renderNums();
-  renderInputButtons();
   document.getElementById("expr").value="";
   document.getElementById("status").innerHTML="";
   document.getElementById("aiExplain").innerHTML="";
@@ -398,7 +396,6 @@ function newQuestion(){
 }
 
 window.onload=function(){
-  renderInputButtons();
   newQuestion();
 };
 </script>
