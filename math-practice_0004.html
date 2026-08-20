@@ -209,9 +209,25 @@ function undo(){
   btn.classList.remove("disabled");
 }
 
+/*
 function insertOp(o){
   const e=document.getElementById("expr");
   e.value+=o;
+}
+*/
+//🎯 按钮插入逻辑永远在“末尾追加”，不会根据光标位置插入的补丁修复
+function insertOp(op){
+  const input = document.getElementById("expr");
+
+  // 先确保输入框获得焦点
+  input.focus();
+
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  const old = input.value;
+
+  // 在当前选区（光标位置）插入 op，并把光标放到插入内容后面
+  input.setRangeText(op, start, end, "end");
 }
 
 function clearExpr(){
