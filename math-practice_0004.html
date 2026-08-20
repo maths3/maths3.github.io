@@ -14,10 +14,19 @@ main{max-width:760px;margin:16px auto;padding:0 12px;}
 .op-btn{padding:6px;background:#f0e9ff;border:1px solid #c7b7ff;border-radius:6px;margin:4px;cursor:pointer;}
 .btn-primary{background:#4b7bec;color:#fff;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;}
 .btn-secondary{background:#e1e6f5;color:#333;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;}
-#expr{width:30%;padding:12px;font-size:20px;border-radius:10px;border:2px solid #4b7bec;}
+#expr{width:50%;padding:12px;font-size:14px;border-radius:10px;border:2px solid #4b7bec;}
+#status {
+  margin-top: 10px;
+  font-size: 16px;
+}
+.ok { color: #1e9d4c; }
+.err { color: #d63031; }
 #timerBar{width:100%;height:8px;background:#e1e6f5;border-radius:6px;overflow:hidden;margin-top:10px;}
 #timerInner{height:100%;width:100%;background:#4b7bec;transition:width 1s linear;}
-.small-tip{font-size:13px;color:#666;}
+.small-tip{font-size:13px;color:blue;}
+.ops-bold{
+  font-weight:700;
+}
 .ai-link{color:#4b7bec;cursor:pointer;text-decoration:underline;font-size:14px;}
 .firework{position:fixed;width:6px;height:6px;background:#ffdd57;border-radius:50%;animation:explode .8s ease-out forwards;}
 @keyframes explode{from{transform:scale(1);opacity:1;}to{transform:scale(8);opacity:0;}}
@@ -25,14 +34,14 @@ main{max-width:760px;margin:16px auto;padding:0 12px;}
   display:flex;
   flex-wrap:nowrap; /* ← 不允许换行 */
   gap:0px;
-  margin-top:12px;
+  margin-top:0px;
   align-items:center;
   overflow-x:auto; /* ← 如果太宽，允许横向滚动 */
   justify-content:flex-start;
 }
 
 .num-btn{
-  flex-shrink:0;
+  flex-shrink:0; /* 防止按钮被压缩 */
 }
 
 .card .op-row{
@@ -45,29 +54,42 @@ main{max-width:760px;margin:16px auto;padding:0 12px;}
   margin:4px;
 }
 
+.title-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap; /* ← 允许手机换行 */
+  gap:0px;
+}
+
+.title-buttons{
+  display:flex;
+  gap:8px;
+  flex-shrink:0; /* ← 防止按钮被压缩变形 */
+}
+
+/* 手机版（宽度小于 480px）自动换行 */
+@media (max-width:480px){
+  .title-row{
+    flex-direction:column; /* ← 手机版标题在上，按钮在下 */
+    align-items:flex-start;
+  }
+}
+
 </style>
 </head>
 <body>
 <header>
-  <h1>🎮 数学乐园 · 扑克牌 24 点</h1>
+  <h1>🎮数学乐园 ·算24点</h1>
   <p>1～13 点数 · 每张牌随机花色 · 数字/扑克牌可切换</p>
 </header>
 
 <main>
 <!-- 题目区 -->
 <div class="card">
+  
   <h2>题目区 <span id="difficultyTag"></span></h2>
-  <div id="numArea" class="num-row"></div>
-  <button class="btn-secondary" onclick="newQuestion()">🎲 换一题</button>
-  <button class="btn-secondary" onclick="toggleCardMode()">🃏 切换数字/扑克牌显示</button>
-  <div id="timerBar"><div id="timerInner"></div></div>
-  <p class="small-tip">每个数字只能用一次，可以使用 + − × ÷ 和括号。</p>
-</div>
-
-<!-- 作答区 -->
-<div class="card">
-  <h2>作答区</h2>
-  <input id="expr" placeholder="点击数字和符号自动输入…" />
+  <p class="small-tip">每个数字只能用一次，可以使用 <span class="ops-bold">+ − × ÷ </span>和括号。</p>
   <div class="op-row">
     <button class="op-btn" onclick="insertOp('+')">+</button>
     <button class="op-btn" onclick="insertOp('-')">-</button>
@@ -75,9 +97,25 @@ main{max-width:760px;margin:16px auto;padding:0 12px;}
     <button class="op-btn" onclick="insertOp('÷')">÷</button>
     <button class="op-btn" onclick="insertOp('(')">(</button>
     <button class="op-btn" onclick="insertOp(')')">)</button>
+  </div>
+  <div class="title-row">
+    <div id="numArea" class="num-row"></div>
+    
+    <div class="title-buttons">
+      <button class="btn-secondary" onclick="newQuestion()">🎲 换一题</button>
+      <button class="btn-secondary" onclick="toggleCardMode()">🃏 切换数字/扑克牌显示</button>
+    </div>
+  </div>
+
+  <div id="timerBar"><div id="timerInner"></div></div>
+  
 </div>
 
-
+<!-- 作答区 -->
+<div class="card">
+  <h2>作答区</h2>
+  <input id="expr" placeholder="点击数字和符号自动输入…" />
+  
   <div style="margin-top:12px;">
     <button class="btn-primary" onclick="checkExpr()">✅ 检查是否等于 24</button>
     <button class="btn-secondary" onclick="clearExpr()">🧹 清空</button>
