@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>🎮 数学乐园 · 扑克牌 24 点 · math-practice_0004 · 新布局</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{font-family:system-ui;background:#f5f7fb;margin:0;}
+header{background:#4b7bec;color:#fff;padding:12px 16px;text-align:center;}
+main{max-width:760px;margin:16px auto;padding:0 12px;}
+.card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,.06);margin-bottom:16px;}
+.num-btn{padding:6px;background:#dfe8ff;border:2px solid #4b7bec;border-radius:8px;margin:6px;cursor:pointer;}
+.num-btn.disabled{background:#e8e8e8;border-color:#bfbfbf;cursor:not-allowed;}
+.op-btn{padding:6px;background:#f0e9ff;border:1px solid #c7b7ff;border-radius:6px;margin:4px;cursor:pointer;}
+.btn-primary{background:#4b7bec;color:#fff;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;}
+.btn-secondary{background:#e1e6f5;color:#333;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;}
+#expr{width:50%;padding:12px;font-size:14px;border-radius:10px;border:2px solid #4b7bec;}
+#status {
+  margin-top: 10px;
+  font-size: 16px;
+}
+.ok { color: #1e9d4c; }
+.err { color: #d63031; }
+#timerBar{width:100%;height:8px;background:#e1e6f5;border-radius:6px;overflow:hidden;margin-top:10px;}
+#timerInner{height:100%;width:100%;background:#4b7bec;transition:width 1s linear;}
+.small-tip{font-size:13px;color:blue;}
+.ops-bold{
+  font-weight:700;
+}
+.ai-link{color:#4b7bec;cursor:pointer;text-decoration:underline;font-size:14px;}
+.firework{position:fixed;width:6px;height:6px;background:#ffdd57;border-radius:50%;animation:explode .8s ease-out forwards;}
+@keyframes explode{from{transform:scale(1);opacity:1;}to{transform:scale(8);opacity:0;}}
+.num-row, .op-row{
+  display:flex;
+  flex-wrap:nowrap; /* ← 不允许换行 */
+  gap:0px;
+  margin-top:0px;
+  align-items:center;
+  overflow-x:auto; /* ← 如果太宽，允许横向滚动 */
+  justify-content:flex-start;
+}
+
+.num-btn{
+  flex-shrink:0; /* 防止按钮被压缩 */
+}
+
+.card .op-row{
+  display:flex !important;   /* ← 关键修复点 */
+}
+
+.op-btn{
+  padding:4px 8px;
+  font-size:16px;
+  margin:4px;
+}
+
+.title-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap; /* ← 允许手机换行 */
+  gap:0px;
+}
+
+.title-buttons{
+  display:flex;
+  gap:8px;
+  flex-shrink:0; /* ← 防止按钮被压缩变形 */
+}
+
+/* 手机版（宽度小于 480px）自动换行 */
+@media (max-width:480px){
+  .title-row{
+    flex-direction:column; /* ← 手机版标题在上，按钮在下 */
+    align-items:flex-start;
+  }
+}
+
+/* 三、CSS：让手写板看起来融入你现在的风格 */
+.handwrite-area{
+  margin-top:12px;
+  padding:10px;
+  border-radius:10px;
+  background:#f5f7fb;
+  border:1px dashed #c7d0e8;
+}
+
+#handCanvas{
+  width:100%;
+  max-width:280px;
+  height:280px;
+  background:#fff;
+  border-radius:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+  border:1px solid #d0d7ea;
+  display:block;
+  background:black;
+}
+
+.handwrite-controls{
+  margin-top:8px;
+  display:flex;
+  gap:8px;
+}
+
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+<!-- 1. 先加载 TFJS -->
+<!-- <script src="https://storage.googleapis.com/tfjs/releases/4.10.0/tf.min.js"></script> -->
+<!-- 2. 再加载 handwrite.js -->
+<script src="handwrite.js"></script>
+
+</head>
+<body>
+<header>
+  <h1>🎮数学乐园 ·算24点</h1>
+  <p>1～13 点数 · 每张牌随机花色 · 数字/扑克牌可切换</p>
+</header>
+
+<main>
+<!-- 题目区 -->
+<div class="card">
+
+  <h2>题目区 <span id="difficultyTag"></span></h2>
+  <p class="small-tip">每个数字只能用一次，可以使用 <span class="ops-bold">+ − × ÷ </span>和括号。</p>
+  <div class="op-row">
+    <!-- + - × ÷ ( ) 按钮 -->
+    <button class="op-btn" onclick="insertOp('+')">+</button>
+    <button class="op-btn" onclick="insertOp('-')">-</button>
+    <button class="op-btn" onclick="insertOp('×')">×</button>
+    <button class="op-btn" onclick="insertOp('÷')">÷</button>
+    <button class="op-btn" onclick="insertOp('(')">(</button>
+    <button class="op-btn" onclick="insertOp(')')">)</button>
+  </div>
+  <div class="title-row">
+    <div id="numArea" class="num-row"></div>
+
+    <div class="title-buttons">
+      <button class="btn-secondary" onclick="newQuestion()">🎲 换一题</button>
+      <button class="btn-secondary" onclick="toggleCardMode()">🃏 切换数字/扑克牌显示</button>
+    </div>
+  </div>
+
+  <div id="timerBar"><div id="timerInner"></div></div>
+  
+</div>
+
+<!-- 作答区 -->
+<div class="card">
+  <h2>作答区</h2>
+  <input id="expr" placeholder="点击数字和符号自动输入…" />
+
+  <!-- 手写板区域 -->
+  <div class="handwrite-area">
+    <canvas id="handCanvas" width="280" height="280"></canvas>
+    <div class="handwrite-controls">
+      <button class="btn-secondary" onclick="clearHandCanvas()">🧹 清空手写</button>
+      <button class="btn-primary" onclick="recognizeHandwriting()">✍️ 识别并插入</button>
+    </div>
+    <p class="small-tip">可以在上面手写数字和符号，识别后自动插入到输入框。</p>
+  </div>
+
+  <div style="margin-top:12px;">
+    <button class="btn-primary" onclick="checkExpr()">✅ 检查是否等于 24</button>
+    <button class="btn-secondary" onclick="clearExpr()">🧹 清空</button>
+    <button class="btn-secondary" onclick="undo()">↩️ 撤销</button>
+  </div>
+  <div id="status"></div>
+</div>
+
+<!-- 分享 -->
+<div class="card">
+  <h2>分享此题</h2>
+  <button class="btn-primary" onclick="shareProblem()">📱 分享此题给朋友</button>
+  <div id="qrcodeArea"></div>
+</div>
+
+<!-- AI 解题 -->
+<div class="card">
+  <h2>AI 解题思路分析</h2>
+  <span class="ai-link" onclick="showAiExplain()">🤖 不会？点我讲解</span>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <span class="ai-link" onclick="showAllSolutions()">📚 看全部解法</span>
+  <div id="aiExplain"></div>
+</div>
+
+<!-- 全部解法 -->
+<div class="card">
+  <h2>本题所有正确答案</h2>
+  <div id="answerList">（尚未计算）</div>
+</div>
+
+<script>
+let nums=[],usedButtons=[],cachedSolutions=null;
+let timer=null,timerSeconds=30,timerLeft=timerSeconds;
+let cardMode="number"; // number / poker
+
+const suits=["hearts","diamonds","clubs","spades"];
+
+function cardLabel(n){
+  if(n===1) return "A";
+  if(n===11) return "J";
+  if(n===12) return "Q";
+  if(n===13) return "K";
+  return n.toString();
+}
+
+function randomCardImage(n){
+  const suit=suits[Math.floor(Math.random()*4)];
+  return `/cards/${suit}/${cardLabel(n)}.png`;
+}
+
+function toggleCardMode(){
+  cardMode=(cardMode==="number")?"poker":"number";
+  renderNums();  // 只更新题目区
+}
+
+function renderNums(){
+  const area=document.getElementById("numArea");
+  area.innerHTML="";
+  nums.forEach((n,i)=>{
+    const btn=document.createElement("button");
+    btn.className="num-btn";
+    btn.dataset.index=i;
+    if(cardMode==="number"){
+      btn.textContent=n;
+    }else{
+      const img=document.createElement("img");
+      img.src=randomCardImage(n);
+      img.style.width="60px";
+      img.style.height="80px";
+      img.style.borderRadius="6px";
+      img.style.boxShadow="0 2px 6px rgba(0,0,0,0.2)";
+      btn.appendChild(img);
+    }
+    btn.onclick=()=>useNumber(btn,n);
+    area.appendChild(btn);
+  });
+}
+
+function useNumber(btn,n){
+  if(btn.classList.contains("disabled")) return;
+  insertOp(n);
+  btn.classList.add("disabled");
+  usedButtons.push(btn);
+}
+
+function undo(){
+  const e=document.getElementById("expr");
+  if(usedButtons.length===0) return;
+  e.value=e.value.replace(/\d+$/,"");
+  const btn=usedButtons.pop();
+  btn.classList.remove("disabled");
+}
+
+/*
+function insertOp(o){
+  const e=document.getElementById("expr");
+  e.value+=o;
+}
+*/
+//🎯 按钮插入逻辑永远在“末尾追加”，不会根据光标位置插入的补丁修复
+function insertOp(op){
+  const input = document.getElementById("expr");
+
+  // 先确保输入框获得焦点
+  input.focus();
+
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  const old = input.value;
+
+  // 在当前选区（光标位置）插入 op，并把光标放到插入内容后面
+  input.setRangeText(op, start, end, "end");
+}
+
+function clearExpr(){
+  document.getElementById("expr").value="";
+  document.getElementById("status").innerHTML="";
+}
+
+function setStatus(msg,type){
+  const s=document.getElementById("status");
+  s.textContent=msg;
+  s.className=type;
+}
+
+function firework(){
+  for(let i=0;i<8;i++){
+    const fw=document.createElement("div");
+    fw.className="firework";
+    fw.style.left=(Math.random()*window.innerWidth)+"px";
+    fw.style.top=(Math.random()*window.innerHeight)+"px";
+    document.body.appendChild(fw);
+    setTimeout(()=>fw.remove(),800);
+  }
+}
+
+function startTimer(){
+  timerLeft=timerSeconds;
+  updateTimerBar();
+  if(timer) clearInterval(timer);
+  timer=setInterval(()=>{
+    timerLeft--;
+    updateTimerBar();
+    if(timerLeft<=0){
+      clearInterval(timer);
+      setStatus("⏰ 时间到！请换一题","err");
+    }
+  },1000);
+}
+
+function updateTimerBar(){
+  const bar=document.getElementById("timerInner");
+  bar.style.width=(timerLeft/timerSeconds*100)+"%";
+}
+
+function checkExpr(){
+  const raw=document.getElementById("expr").value;
+  const expr=raw.replace(/×/g,"*").replace(/÷/g,"/");
+  if(!expr.trim()){
+    setStatus("请输入算式","err");
+    return;
+  }
+  const used=expr.match(/\d+/g)?.map(x=>parseInt(x))||[];
+  const sortedUsed=used.slice().sort((a,b)=>a-b);
+  const sortedNums=nums.slice().sort((a,b)=>a-b);
+  if(JSON.stringify(sortedUsed)!==JSON.stringify(sortedNums)){
+    setStatus("必须使用题目给出的四个数字","err");
+    return;
+  }
+  try{
+    const val=Function("return ("+expr+")")();
+    if(Math.abs(val-24)<1e-9){
+      setStatus("🎉 正确！结果是 24","ok");
+      firework();
+    }else{
+      setStatus("结果是 "+val+"，不是 24","err");
+    }
+  }catch{
+    setStatus("表达式错误，请检查括号与运算符","err");
+  }
+}
+
+function solve24All(){
+  if(cachedSolutions) return cachedSolutions;
+  const ops=["+","-","*","/"];
+  const results=new Set();
+  function calc(a,b,op){
+    if(op==="+") return a+b;
+    if(op==="-") return a-b;
+    if(op==="*") return a*b;
+    if(op==="/") return b===0?null:a/b;
+  }
+  const arr=nums.slice();
+  const perms=[];
+  for(let i=0;i<4;i++){
+    for(let j=0;j<4;j++){
+      if(j===i) continue;
+      for(let k=0;k<4;k++){
+        if(k===i||k===j) continue;
+        for(let l=0;l<4;l++){
+          if(l===i||l===j||l===k) continue;
+          perms.push([arr[i],arr[j],arr[k],arr[l]]);
+        }
+      }
+    }
+  }
+  for(const [a,b,c,d] of perms){
+    for(const op1 of ops){
+      for(const op2 of ops){
+        for(const op3 of ops){
+
+          let t1=calc(a,b,op1);
+          if(t1!==null){
+            let t2=calc(t1,c,op2);
+            if(t2!==null){
+              let t3=calc(t2,d,op3);
+              if(t3!==null&&Math.abs(t3-24)<1e-9)
+                results.add(`((${a}${op1}${b})${op2}${c})${op3}${d}`);
+            }
+          }
+
+          t1=calc(b,c,op2);
+          if(t1!==null){
+            let t2=calc(a,t1,op1);
+            if(t2!==null){
+              let t3=calc(t2,d,op3);
+              if(t3!==null&&Math.abs(t3-24)<1e-9)
+                results.add(`(${a}${op1}(${b}${op2}${c}))${op3}${d}`);
+            }
+          }
+
+          t1=calc(b,c,op2);
+          if(t1!==null){
+            let t2=calc(t1,d,op3);
+            if(t2!==null){
+              let t3=calc(a,t2,op1);
+              if(t3!==null&&Math.abs(t3-24)<1e-9)
+                results.add(`${a}${op1}((${b}${op2}${c})${op3}${d})`);
+            }
+          }
+
+          t1=calc(c,d,op3);
+          if(t1!==null){
+            let t2=calc(b,t1,op2);
+            if(t2!==null){
+              let t3=calc(a,t2,op1);
+              if(t3!==null&&Math.abs(t3-24)<1e-9)
+                results.add(`${a}${op1}(${b}${op2}(${c}${op3}${d}))`);
+            }
+          }
+
+          t1=calc(a,b,op1);
+          t2=calc(c,d,op3);
+          if(t1!==null&&t2!==null){
+            let t3=calc(t1,t2,op2);
+            if(t3!==null&&Math.abs(t3-24)<1e-9)
+              results.add(`(${a}${op1}${b})${op2}(${c}${op3}${d})`);
+          }
+        }
+      }
+    }
+  }
+  cachedSolutions=[...results].map(s=>s.replace(/\*/g,"×").replace(/\//g,"÷"));
+  updateDifficulty(cachedSolutions.length);
+  return cachedSolutions;
+}
+
+function updateDifficulty(count){
+  const tag=document.getElementById("difficultyTag");
+  let level="";
+  if(count===0) level="❌ 无解题";
+  else if(count<=2) level="⭐ 简单";
+  else if(count<=6) level="⭐⭐ 中等";
+  else if(count<=15) level="⭐⭐⭐ 困难";
+  else level="⭐⭐⭐⭐ 地狱级";
+  tag.textContent=level;
+}
+
+function showAiExplain(){
+  const div=document.getElementById("aiExplain");
+  const sols=solve24All();
+  if(sols.length===0){
+    div.innerHTML="❌ 这组数字无解。";
+    return;
+  }
+  const sample=sols.slice(0,Math.min(3,sols.length));
+  div.innerHTML=`<p>这道题可以这样思考：</p>
+    <ul>${sample.map(s=>`<li><code>${s}</code></li>`).join("")}</ul>`;
+}
+
+function showAllSolutions(){
+  const sols=solve24All();
+  const list=document.getElementById("answerList");
+  list.innerHTML="";
+  if(sols.length===0){
+    list.innerHTML="❌ 本题无解";
+    return;
+  }
+  sols.forEach(a=>{
+    const div=document.createElement("div");
+    div.textContent=a;
+    list.appendChild(div);
+  });
+}
+
+function shareProblem(){
+  const difficulty=document.getElementById("difficultyTag").textContent;
+  const numbers=nums.join(", ");
+  const text=`24点题目：${numbers} 难度：${difficulty}`;
+  const area=document.getElementById("qrcodeArea");
+  area.innerHTML="";
+  const img=document.createElement("img");
+  img.src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data="+encodeURIComponent(text);
+  img.style.marginTop="10px";
+  img.style.borderRadius="6px";
+  area.appendChild(img);
+}
+
+function newQuestion(){
+  nums=[];
+  for(let i=0;i<4;i++) nums.push(Math.floor(Math.random()*13)+1);
+  usedButtons=[];
+  cachedSolutions=null;
+  renderNums();
+  document.getElementById("expr").value="";
+  document.getElementById("status").innerHTML="";
+  document.getElementById("aiExplain").innerHTML="";
+  document.getElementById("answerList").innerHTML="（尚未计算）";
+  startTimer();
+  solve24All();
+}
+
+window.onload=function(){
+  newQuestion();
+};
+
+// 手写板初始化
+const handCanvas = document.getElementById("handCanvas");
+const handCtx = handCanvas.getContext("2d");
+let drawing = false;
+
+function getCanvasPos(e){
+  const rect = handCanvas.getBoundingClientRect();
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+  return { x, y };
+}
+
+function startDraw(e){
+  drawing = true;
+  const { x, y } = getCanvasPos(e);
+  handCtx.beginPath();
+  handCtx.moveTo(x, y);
+}
+
+function moveDraw(e){
+  if(!drawing) return;
+  const { x, y } = getCanvasPos(e);
+  handCtx.lineTo(x, y);
+  //handCtx.strokeStyle = "#000";
+  handCtx.strokeStyle = "white";
+  //handCtx.lineWidth = 4;
+  handCtx.lineWidth = 12;
+  handCtx.lineCap = "round";
+  handCtx.lineJoin = "round";
+  handCtx.stroke();
+}
+
+function endDraw(){
+  drawing = false;
+}
+
+handCanvas.addEventListener("mousedown", startDraw);
+handCanvas.addEventListener("mousemove", moveDraw);
+handCanvas.addEventListener("mouseup", endDraw);
+handCanvas.addEventListener("mouseleave", endDraw);
+
+// 触屏支持
+handCanvas.addEventListener("touchstart", e => { e.preventDefault(); startDraw(e); });
+handCanvas.addEventListener("touchmove",  e => { e.preventDefault(); moveDraw(e); });
+handCanvas.addEventListener("touchend",   e => { e.preventDefault(); endDraw(); });
+
+function clearHandCanvas(){
+  handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+}
+
+// ⭐ 识别入口：这里以后接真正的模型/API
+async function recognizeHandwriting(){
+  const exprInput = document.getElementById("expr");
+
+  // 1. 把手写板转成图片
+  const imgData = handCanvas.toDataURL("image/png");
+
+  // 2. 先用本地模型识别
+  //let symbol = await localRecognize(imgData);
+  let symbol = await recognizeMultipleDigits();
+
+  
+  //const symbol = await cloudRecognize(imgData);
+
+  // 3. 如果本地模型不确定，则用云端模型兜底
+  if(!symbol){
+    alert("Cloud!!!");
+    symbol = await cloudRecognize(imgData);
+  }
+
+  // 4. 如果还是识别失败
+  if(!symbol){
+    alert("识别失败，请重写一次试试");
+    return;
+  }
+
+  // 5. 插入到输入框（你已经修好的光标插入逻辑）
+  const start = exprInput.selectionStart;
+  const end   = exprInput.selectionEnd;
+  exprInput.setRangeText(symbol, start, end, "end");
+  exprInput.focus();
+
+  // 6. 清空手写板
+  clearHandCanvas();
+}
+
+
+// 临时识别函数：先用 prompt 模拟，后面你换成真正识别
+function fakeRecognizeSymbol(imgDataUrl){
+  return new Promise(resolve => {
+    const symbol = prompt("暂时用手动输入代替识别，请输入识别结果（例如 3, +, ×, ( ）:");
+    resolve(symbol);
+  });
+}
+
+/*
+function preprocessHandCanvas() {
+  const imgData = handCtx.getImageData(0, 0, handCanvas.width, handCanvas.height);
+  const tfImg = tf.browser.fromPixels(imgData, 1);
+  const resized = tf.image.resizeBilinear(tfImg, [28, 28]);
+  const normalized = resized.div(255.0);
+  return normalized.reshape([1, 28, 28, 1]);
+}
+*/
+
+function preprocessHandCanvas() {
+    const src = handCanvas;
+    const ctx = handCtx;
+
+    const W = src.width;
+    const H = src.height;
+
+    const imgData = ctx.getImageData(0, 0, W, H);
+    const data = imgData.data;
+
+    // 1. 找所有白色像素
+    let minX = W, minY = H;
+    let maxX = 0, maxY = 0;
+
+    for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+            const i = (y * W + x) * 4;
+            const r = data[i], g = data[i+1], b = data[i+2];
+            if (r + g + b > 50) {
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+        }
+    }
+    
+    // ⭐⭐ 必须保留：没有笔迹时直接返回空图
+    if (maxX <= minX || maxY <= minY) {
+        return tf.zeros([1, 784]);
+    }
+    
+    // ⭐⭐ 方案2：扩大裁剪区域（关键）
+    minX -= 10;
+    maxX += 10;
+    minY -= 10;
+    maxY += 10;
+
+    // ⭐ 防止越界
+    minX = Math.max(0, minX);
+    minY = Math.max(0, minY);
+    maxX = Math.min(W - 1, maxX);
+    maxY = Math.min(H - 1, maxY);
+
+    // ⭐ 继续你的裁剪逻辑
+    const cropW = maxX - minX + 1;
+    const cropH = maxY - minY + 1;
+
+    let cropCanvas = document.createElement("canvas");
+    cropCanvas.width = cropW;
+    cropCanvas.height = cropH;
+    let cropCtx = cropCanvas.getContext("2d");
+    cropCtx.drawImage(src, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+    let small = document.createElement("canvas");
+    small.width = 20;
+    small.height = 20;
+    let smallCtx = small.getContext("2d");
+    smallCtx.imageSmoothingEnabled = false;
+    
+    //smallCtx.drawImage(cropCanvas, 0, 0, 20, 20);
+    const scale = Math.min(20 / cropW, 20 / cropH);
+    const newW = cropW * scale;
+    const newH = cropH * scale;
+    smallCtx.drawImage(cropCanvas, 0, 0, newW, newH);
+
+
+    let dst = document.createElement("canvas");
+    dst.width = 28;
+    dst.height = 28;
+    let dstCtx = dst.getContext("2d");
+    dstCtx.imageSmoothingEnabled = false;
+
+    dstCtx.fillStyle = "black";
+    dstCtx.fillRect(0, 0, 28, 28);
+
+    const offsetX = 4;
+    const offsetY = 4;
+    dstCtx.drawImage(small, offsetX, offsetY);
+
+    const finalData = dstCtx.getImageData(0, 0, 28, 28).data;
+    let arr = [];
+    for (let i = 0; i < finalData.length; i += 4) {
+        let gray = (finalData[i] + finalData[i+1] + finalData[i+2]) / 3 / 255;
+        arr.push(gray);
+    }
+
+    return tf.tensor(arr).reshape([1, 784]);
+}
+
+async function localRecognize(img){
+  // TODO：这里以后换成真正的本地模型
+  // 现在先返回 null，表示“不确定”
+  //await loadModel();
+  //return null;
+
+  if (!mnistModel) {
+    console.log("模型尚未加载");
+    return null;
+  }
+
+  const input = preprocessHandCanvas();
+  const pred = mnistModel.predict(input);
+  const digit = pred.argMax(1).dataSync()[0];
+  return digit.toString();
+
+}
+
+function splitDigits() {
+    const W = handCanvas.width;
+    const H = handCanvas.height;
+    const ctx = handCtx;
+
+    const imgData = ctx.getImageData(0, 0, W, H);
+    const data = imgData.data;
+
+    // 生成二值图
+    let mask = Array.from({length: H}, () => Array(W).fill(0));
+    for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+            const i = (y * W + x) * 4;
+            const r = data[i], g = data[i+1], b = data[i+2];
+            mask[y][x] = (r + g + b > 50) ? 1 : 0;
+        }
+    }
+
+    // 连通区域
+    let visited = Array.from({length: H}, () => Array(W).fill(false));
+    let components = [];
+
+    function bfs(sx, sy) {
+        let queue = [[sx, sy]];
+        visited[sy][sx] = true;
+
+        let minX = sx, maxX = sx;
+        let minY = sy, maxY = sy;
+
+        while (queue.length > 0) {
+            let [x, y] = queue.shift();
+            const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+            for (let [dx, dy] of dirs) {
+                let nx = x + dx, ny = y + dy;
+                if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
+                    if (!visited[ny][nx] && mask[ny][nx] === 1) {
+                        visited[ny][nx] = true;
+                        queue.push([nx, ny]);
+
+                        if (nx < minX) minX = nx;
+                        if (nx > maxX) maxX = nx;
+                        if (ny < minY) minY = ny;
+                        if (ny > maxY) maxY = ny;
+                    }
+                }
+            }
+        }
+
+        return {minX, maxX, minY, maxY};
+    }
+
+    for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+            if (mask[y][x] === 1 && !visited[y][x]) {
+                components.push(bfs(x, y));
+            }
+        }
+    }
+
+    // 按 X 排序
+    components.sort((a, b) => a.minX - b.minX);
+
+    return components;
+}
+
+function preprocessSingleDigit(minX, maxX, minY, maxY) {
+    const cropW = maxX - minX + 1;
+    const cropH = maxY - minY + 1;
+
+    let cropCanvas = document.createElement("canvas");
+    cropCanvas.width = cropW;
+    cropCanvas.height = cropH;
+    let cropCtx = cropCanvas.getContext("2d");
+
+    cropCtx.drawImage(handCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+    let small = document.createElement("canvas");
+    small.width = 20;
+    small.height = 20;
+    let smallCtx = small.getContext("2d");
+    smallCtx.imageSmoothingEnabled = false;
+    smallCtx.drawImage(cropCanvas, 0, 0, 20, 20);
+
+    let dst = document.createElement("canvas");
+    dst.width = 28;
+    dst.height = 28;
+    let dstCtx = dst.getContext("2d");
+    dstCtx.imageSmoothingEnabled = false;
+
+    dstCtx.fillStyle = "black";
+    dstCtx.fillRect(0, 0, 28, 28);
+    dstCtx.drawImage(small, 4, 4);
+
+    const finalData = dstCtx.getImageData(0, 0, 28, 28).data;
+    let arr = [];
+    for (let i = 0; i < finalData.length; i += 4) {
+        let gray = (finalData[i] + finalData[i+1] + finalData[i+2]) / 3 / 255;
+        arr.push(gray);
+    }
+
+    return tf.tensor(arr).reshape([1, 784]);
+}
+
+async function recognizeMultipleDigits() {
+    const comps = splitDigits();
+    let result = "";
+
+    for (let comp of comps) {
+        const input = preprocessSingleDigit(comp.minX, comp.maxX, comp.minY, comp.maxY);
+        const pred = mnistModel.predict(input).argMax(1).dataSync()[0];
+        result += pred.toString();
+    }
+
+    return result;
+}
+
+
+
+async function cloudRecognize(imgData){
+  try{
+    // ⭐ 在这里打印你真正发送给 Worker 的 Base64
+    console.log("发送给 Worker 的 Base64：", imgData);
+    const res = await fetch("https://maths-handwrite-api.gankenrin.workers.dev", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ image: imgData })
+    });
+    const data = await res.json();
+    return data.symbol || null;
+
+  }catch(err){
+    console.error("云端识别失败：", err);
+    return null;
+  }
+}
+</script>
+</main>
+</body>
+</html>
