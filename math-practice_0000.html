@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小学1年级 乘除法算数练习</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .submit-btn {
+            background-color: #008CBA;
+        }
+        .submit-btn:hover {
+            background-color: #007bb5;
+        }
+        .quiz-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .quiz-item {
+            background-color: #fafafa;
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .quiz-item input {
+            width: 60px;
+            height: 32px;
+            font-size: 18px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+        }
+        .quiz-item input.correct {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+        .quiz-item input.incorrect {
+            border-color: #f44336;
+            background-color: #ffebee;
+        }
+        .score-board {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>小学1年级 乘除法练习</h1>
+    <div class="controls">
+        <button onclick="generateQuiz()">刷新题目</button>
+        <button class="submit-btn" onclick="checkAnswers()">提交答案</button>
+    </div>
+
+    <div id="quiz" class="quiz-grid"></div>
+
+    <div id="score" class="score-board"></div>
+</div>
+
+<script>
+    let currentQuestions = [];
+
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateQuiz() {
+        const quizContainer = document.getElementById('quiz');
+        const scoreDiv = document.getElementById('score');
+        quizContainer.innerHTML = '';
+        scoreDiv.innerHTML = '';
+        currentQuestions = [];
+
+        for (let i = 0; i < 10; i++) {
+            const isMultiplication = Math.random() > 0.5;
+            let num1, num2, symbol, answer;
+
+            if (isMultiplication) {
+                num1 = getRandomInt(1, 9);
+                num2 = getRandomInt(1, 9);
+                symbol = '×';
+                answer = num1 * num2;
+            } else {
+                num2 = getRandomInt(1, 9);
+                answer = getRandomInt(1, 9);
+                num1 = num2 * answer;
+                symbol = '÷';
+            }
+
+            currentQuestions.push({ num1, num2, symbol, answer });
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'quiz-item';
+            itemDiv.innerHTML = `
+                <span>${i + 1}. ${num1} ${symbol} ${num2} = </span>
+                <input type="number" id="ans-${i}" />
+            `;
+            quizContainer.appendChild(itemDiv);
+        }
+    }
+
+    function checkAnswers() {
+        let correctCount = 0;
+        currentQuestions.forEach((q, index) => {
+            const input = document.getElementById(`ans-${index}`);
+            const userAnswer = parseInt(input.value, 10);
+
+            input.classList.remove('correct', 'incorrect');
+            if (userAnswer === q.answer) {
+                correctCount++;
+                input.classList.add('correct');
+            } else {
+                input.classList.add('incorrect');
+            }
+        });
+
+        const scoreDiv = document.getElementById('score');
+        scoreDiv.innerHTML = `得分：${correctCount * 10} / 100 点 (正确率 ${correctCount}/${currentQuestions.length})`;
+    }
+
+    // 页面加载时自动生成题目
+    window.onload = generateQuiz;
+</script>
+
+</body>
+</html>
