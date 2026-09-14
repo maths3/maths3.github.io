@@ -58,17 +58,17 @@
         .quiz-item {
             background-color: #fafafa;
             border: 1px solid #e0e0e0;
-            padding: 10px 12px;
+            padding: 8px 10px;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 12px;
+            font-size: 15px;
             font-weight: bold;
         }
         .quiz-item input {
-            width: 50px;
-            height: 32px;
+            width: 42px;
+            height: 25px;
             font-size: 15px;
             text-align: center;
             border: 2px solid #ccc;
@@ -94,7 +94,7 @@
 <body>
 
 <div class="container">
-    <h1>小学1年级 乘除法练习</h1>
+    <h1>小学1年级 乘除练习</h1>
     <div class="controls">
         <button onclick="generateQuiz()">刷新题目</button>
         <button class="submit-btn" onclick="checkAnswers()">提交答案</button>
@@ -140,7 +140,8 @@
             const itemDiv = document.createElement('div');
             itemDiv.className = 'quiz-item';
             itemDiv.innerHTML = `
-                <span>${i + 1}. ${num1} ${symbol} ${num2} = </span>
+                <!-- <span>${i + 1}. ${num1} ${symbol} ${num2} = </span> -->
+                <span>${num1} ${symbol} ${num2} = </span>
                 <input type="number" id="ans-${i}" />
             `;
             quizContainer.appendChild(itemDiv);
