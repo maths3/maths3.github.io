@@ -27,8 +27,8 @@
             margin-bottom: 20px;
         }
         .controls {
-            display: flex;
-            justify-content: space-between;
+            display: flex !important;
+            justify-content: space-between !important;
             margin-bottom: 20px;
         }
         button {
@@ -88,7 +88,122 @@
             font-weight: bold;
             margin-top: 20px;
             color: #333;
+        }        
+        /* ============================================================
+         * 数字のはみ出し解消 & 端末別最適化CSS
+         * ============================================================ */
+
+        /* 1. タイトルテキストの不自然な改行を防ぐ */
+        h1, h2, .title {
+          word-break: keep-all !important;
+          white-space: nowrap !important;
         }
+
+        /* 2. 上部ボタンの余白と位置調整 */
+        .button-container,
+        .top-buttons,
+        div:has(> button) {
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          gap: 16px !important;                     /* ボタン同士の横間隔 */
+          margin: 16px auto 20px auto !important;
+        }
+
+        .btn,
+        button,
+        input[type="button"] {
+          height: 38px !important;
+          padding: 0 18px !important;
+          font-size: 0.92rem !important;
+          font-weight: 600 !important;
+          border-radius: 8px !important;
+          border: none !important;
+          cursor: pointer !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          white-space: nowrap !important;
+        }
+
+        /* 3. 問題カード：はみ出しを防止し、内側に収める */
+        .item,
+        div[class*="item"] {
+          display: flex !important;
+          justify-content: space-between !important; /* 左に数式、右に入力枠を配置 */
+          align-items: center !important;
+          gap: 8px !important;
+          width: 100% !important;
+          max-width: 100% !important;                /* 固定幅を解除してカード枠を広げる */
+          padding: 8px 12px !important;              /* 内側余白を確保 */
+          box-sizing: border-box !important;         /* paddingを含めたサイズ計算 */
+          overflow: hidden !important;               /* はみ出しを完全にカット */
+        }
+
+        /* 算式テキスト（81 ÷ 9 = など） */
+        .item span,
+        div[class*="item"] span {
+          margin: 0 !important;
+          padding: 0 !important;
+          flex: 1 !important;                        /* 左側スペースを自動確保 */
+          min-width: 0 !important;                   /* 幅の自動縮小を許可してはみ出し防止 */
+          font-size: 1.05rem !important;
+          font-weight: 700 !important;
+          text-align: left !important;               /* 左揃え */
+          white-space: nowrap !important;            /* 改行させない */
+        }
+
+        /* 入力ボックス */
+        .item input,
+        div[class*="item"] input {
+          margin: 0 !important;
+          flex: none !important;                     /* サイズを固定 */
+          width: 46px !important;                    /* コンパクトな方格サイズ */
+          height: 34px !important;
+          text-align: center !important;
+          font-size: 1rem !important;
+          box-sizing: border-box !important;
+        }
+
+        /* 4. 全体グリッドレイアウト（レスポンシブ対応） */
+        #problemsContainer,
+        .problems-grid,
+        .grid {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important; /* PC・タブレットで2列均等 */
+          gap: 10px 12px !important;                                    /* カード同士の間隔 */
+          width: 100% !important;
+          max-width: 520px !important;                                  /* 全体の最大幅 */
+          margin: 0 auto !important;
+          padding: 0 12px !important;
+          box-sizing: border-box !important;
+        }
+
+        /* 5. モバイル（スマホ）画面向けの自動1列切り替え */
+        @media screen and (max-width: 480px) {
+          #problemsContainer,
+          .problems-grid,
+          .grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important; /* スマホでも2列で綺麗に収まります */
+            gap: 8px 8px !important;
+            padding: 0 8px !important;
+          }
+
+          .item,
+          div[class*="item"] {
+            padding: 6px 8px !important;             /* スマホ用内側余白微調整 */
+          }
+
+          .item span,
+          div[class*="item"] span {
+            font-size: 0.95rem !important;           /* スマホ用に文字サイズを最適化 */
+          }
+
+          .item input,
+          div[class*="item"] input {
+            width: 42px !important;                  /* スマホ用の入力枠サイズ */
+            height: 32px !important;
+          }
     </style>
 </head>
 <body>
