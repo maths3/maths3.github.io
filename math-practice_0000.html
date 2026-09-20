@@ -28,8 +28,11 @@
         }
         .controls {
             display: flex !important;
-            justify-content: space-between !important;
+            justify-content: center !important;
+            align-items: center !important;
+            gap: 12px !important;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         button {
             background-color: #4CAF50;
@@ -49,6 +52,12 @@
         }
         .submit-btn:hover {
             background-color: #007bb5;
+        }
+        .review-btn {
+            background-color: #ff9800; /* 醒目的橙色复习按钮 */
+        }
+        .review-btn:hover {
+            background-color: #e68a00;
         }
         .quiz-grid {
             display: grid;
@@ -106,7 +115,7 @@
           display: flex !important;
           justify-content: center !important;
           align-items: center !important;
-          gap: 16px !important;                     /* ボタン同士の横間隔 */
+          gap: 12px !important;                     /* ボタン同士の横間隔 */
           margin: 16px auto 20px auto !important;
         }
 
@@ -114,16 +123,20 @@
         button,
         input[type="button"] {
           height: 38px !important;
-          padding: 0 18px !important;
+          padding: 0 16px !important;
           font-size: 0.92rem !important;
           font-weight: 600 !important;
           border-radius: 8px !important;
           border: none !important;
           cursor: pointer !important;
-          display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;
           white-space: nowrap !important;
+        }
+
+        /* 隐藏类：确保高于 !important 的样式优先级 */
+        .hidden {
+          display: none !important;
         }
 
         /* 3. 問題カード：はみ出しを防止し、内側に収める */
@@ -204,6 +217,7 @@
             width: 42px !important;                  /* スマホ用の入力枠サイズ */
             height: 32px !important;
           }
+        }
     </style>
 </head>
 <body>
@@ -213,6 +227,8 @@
     <div class="controls">
         <button onclick="generateQuiz()">刷新题目</button>
         <button class="submit-btn" onclick="checkAnswers()">提交答案</button>
+        <!-- 使用 class="hidden" 保证初始及刷新时完全隐藏 -->
+        <button class="review-btn hidden" id="reviewBtn" onclick="goToReview()">巩固练习</button>
     </div>
 
     <div id="quiz" class="quiz-grid"></div>
@@ -230,8 +246,14 @@
     function generateQuiz() {
         const quizContainer = document.getElementById('quiz');
         const scoreDiv = document.getElementById('score');
+        const reviewBtn = document.getElementById('reviewBtn');
+        
         quizContainer.innerHTML = '';
         scoreDiv.innerHTML = '';
+        
+        // 刷新题目时重新隐藏复习按钮
+        reviewBtn.classList.add('hidden');
+        
         currentQuestions = [];
 
         for (let i = 0; i < 10; i++) {
@@ -278,8 +300,24 @@
             }
         });
 
+        const total = currentQuestions.length;
+        const accuracyRate = (correctCount / total) * 100;
+
         const scoreDiv = document.getElementById('score');
-        scoreDiv.innerHTML = `得分：${correctCount * 10} / 100 点 (正确率 ${correctCount}/${currentQuestions.length})`;
+        scoreDiv.innerHTML = `得分：${correctCount * 10} / 100 点 (正确率 ${correctCount}/${total})`;
+
+        // 判断：只有在正确率低于 90% 时移除 hidden 类（显示按钮），否则强制隐藏
+        const reviewBtn = document.getElementById('reviewBtn');
+        if (accuracyRate < 90) {
+            reviewBtn.classList.remove('hidden');
+        } else {
+            reviewBtn.classList.add('hidden');
+        }
+    }
+
+    // 跳转到复习链接
+    function goToReview() {
+        window.location.href = "https://maths3.github.io/math-practice_0000_0.html";
     }
 
     // 页面加载时自动生成题目
