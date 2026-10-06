@@ -71,7 +71,31 @@
             height: 18px;
             text-align: center;
             font-weight: bold;
+            padding: 0 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 用时恢复为绿色 */
+        #timeDisplay {
             color: #27ae60;
+        }
+
+        /* 针对班级专属加宽，防止“一年级一班”溢出 */
+        #classDisplay {
+            width: 110px;
+            color: #333; /* 班级黑色 */
+        }
+
+        /* 姓名黑色 */
+        #nameDisplay {
+            color: #333;
+        }
+
+        /* 成绩红色 */
+        #scoreDisplay {
+            color: #e74c3c;
         }
 
         /* 得分面板看板 */
@@ -216,6 +240,72 @@
             margin-top: 20px;
         }
 
+        /* 姓名班级弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            padding: 15px;
+        }
+
+        .modal-card {
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .modal-card h3 {
+            margin-bottom: 18px;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+
+        .modal-field {
+            margin-bottom: 14px;
+            text-align: left;
+        }
+
+        .modal-field label {
+            font-size: 14px;
+            color: #555;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .modal-field input {
+            width: 100%;
+            padding: 9px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .modal-field input:focus {
+            border-color: #3498db;
+        }
+
+        .btn-start {
+            width: 100%;
+            padding: 11px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
         /* 📱 响应式适配：中等屏幕（タブレット等） -> 2列 */
         @media (max-width: 768px) {
             .math-grid {
@@ -248,6 +338,10 @@
                 width: 70px;
             }
 
+            #classDisplay {
+                width: 95px; /* 移动端适当加宽 */
+            }
+
             .math-grid {
                 grid-template-columns: 1fr; /* スマホでは縦1列に配置 */
                 row-gap: 10px;
@@ -274,7 +368,7 @@
                 width: 100%;
                 padding: 0;
             }
-            .actions, .score-board {
+            .actions, .score-board, .modal-overlay {
                 display: none !important;
             }
             .math-grid {
@@ -291,14 +385,30 @@
 </head>
 <body>
 
+<!-- 姓名班级输入弹窗 -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card">
+        <h3>请输入个人信息</h3>
+        <div class="modal-field">
+            <label for="inputClass">班级：</label>
+            <input type="text" id="inputClass" placeholder="例如：一年级1班">
+        </div>
+        <div class="modal-field">
+            <label for="inputName">姓名：</label>
+            <input type="text" id="inputName" placeholder="请输入姓名">
+        </div>
+        <button class="btn-start" onclick="confirmAndStart()">确定并开始计时</button>
+    </div>
+</div>
+
 <div class="paper">
     <!-- 头部信息 -->
     <div class="header">
         <h1>一年级下册数学<br><span>《1-6的表内乘法》</span>计算专项</h1>
         <div class="info-bar">
-            <div class="info-item">姓名：<span class="underline"></span></div>
+            <div class="info-item">姓名：<span class="underline" id="nameDisplay"></span></div>
             <div class="info-item">用时：<span class="underline" id="timeDisplay">00:00</span></div>
-            <div class="info-item">班级：<span class="underline"></span></div>
+            <div class="info-item">班级：<span class="underline" id="classDisplay"></span></div>
             <div class="info-item">成绩：<span class="underline" id="scoreDisplay"></span></div>
         </div>
     </div>
@@ -333,16 +443,17 @@
 
     <!-- 页码 -->
     <div class="footer">
-        第<span id="currentPage">1</span>页，共10页
+        第<span id="currentPage">1</span>页，共1000000页
     </div>
 </div>
 
 <script>
     let currentPage = 1;
-    const maxPage = 10;
+    const maxPage = 10000000;
     
     let timerInterval = null;
     let secondsElapsed = 0;
+    let isStarted = false;
 
     function formatTime(totalSeconds) {
         const mins = Math.floor(totalSeconds / 60);
@@ -350,6 +461,23 @@
         const formattedMins = mins < 10 ? '0' + mins : mins;
         const formattedSecs = secs < 10 ? '0' + secs : secs;
         return `${formattedMins}:${formattedSecs}`;
+    }
+
+    function confirmAndStart() {
+        const className = document.getElementById('inputClass').value.trim();
+        const name = document.getElementById('inputName').value.trim();
+
+        if (!name) {
+            alert("请输入姓名后再开始！");
+            return;
+        }
+
+        document.getElementById('classDisplay').textContent = className;
+        document.getElementById('nameDisplay').textContent = name;
+        document.getElementById('modalOverlay').style.display = 'none';
+
+        isStarted = true;
+        startTimer();
     }
 
     function startTimer() {
@@ -452,13 +580,22 @@
         currentPage = currentPage >= maxPage ? 1 : currentPage + 1;
         document.getElementById('currentPage').textContent = currentPage;
 
-        startTimer();
-
         document.getElementById('scoreBoard').classList.remove('active');
         document.getElementById('scoreDisplay').textContent = '';
+
+        if (isStarted) {
+            startTimer();
+        } else {
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
     }
 
     function submitAnswers() {
+        if (!isStarted) {
+            alert("请先填写姓名班级并点击确定开始！");
+            return;
+        }
+
         stopTimer();
 
         const inputs = document.querySelectorAll('.answer-input');
@@ -500,7 +637,6 @@
     window.onload = function() {
         generatePart1();
         generatePart2();
-        startTimer();
     };
 </script>
 
