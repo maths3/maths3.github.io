@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>万能テキスト整形・置換ツール（WinMerge完全プロ版）</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; max-width: 1200px; }
+        textarea { 
+            width: 100%; 
+            height: 150px; 
+            margin-bottom: 10px; 
+            padding: 8px; 
+            white-space: pre !important; 
+            word-wrap: normal !important;
+            overflow-x: scroll !important; 
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        .box { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; }
+        input[type="text"], select { padding: 5px; font-size: 14px; }
+        label { display: block; margin-bottom: 8px; }
+        .replace-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
+        .replace-row input { flex: 1; }
+        .btn-small { padding: 5px 10px; font-size: 14px; cursor: pointer; }
+        .status-msg { font-size: 13px; color: #28a745; margin-left: 10px; font-weight: bold; }
+        .info { font-size: 13px; color: #007bff; font-weight: bold; margin-top: 5px; }
+        .warn-box { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 13px; line-height: 1.5; }
+        .file-section { background: #eef9ff; border-color: #bce8f1; }
+        
+        /* WinMerge 风格专业分栏对比样式 */
+        .diff-layout { display: flex; gap: 5px; margin-top: 10px; align-items: stretch; }
+        
+        /* 最左侧差异概览导航条 */
+        .diff-overview-bar {
+            width: 16px;
+            background: #e9ecef;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .overview-mark {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            height: 4px;
+            background: #ffc107;
+            border-radius: 1px;
+        }
+        .overview-mark:hover { background: #e0a800; }
+
+        .diff-container { display: flex; gap: 10px; flex-grow: 1; min-width: 0; }
+        .diff-pane { flex: 1; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 5px; min-width: 0; display: flex; flex-direction: column; }
+        .diff-pane h4 { margin: 5px 0; font-size: 14px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        
+        /* 双向滚动视窗 */
+        .diff-viewer { 
+            height: 320px; 
+            overflow: scroll; 
+            font-family: monospace; 
+            font-size: 13px; 
+            white-space: pre; 
+            background: #fdfdfd; 
+            border: 1px inset #ddd;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            flex-grow: 1;
+        }
+        .diff-line { display: flex; width: max-content; min-width: 100%; line-height: 1.5; cursor: pointer; }
+        .line-num { width: 50px; color: #999; text-align: right; padding-right: 8px; user-select: none; background: #f0f0f0; border-right: 1px solid #ddd; flex-shrink: 0; position: sticky; left: 0; z-index: 2; }
+        .line-content { padding-left: 8px; white-space: pre; flex-grow: 1; }
+        
+        /* 差异高亮 */
+        .line-diff { background-color: #efd000; } 
+        .char-diff { background-color: #ffc9c9; color: #8b0000; font-weight: bold; border-radius: 2px; } 
+        
+        /* 经典代码语法高亮色彩（只改变颜色，不破坏结构） */
+        .syn-tag { color: #0000ff; font-weight: bold; }       /* 标签名：深蓝色 */
+        .syn-comment { color: #008000; font-style: italic; } /* 注释：绿色 */
+
+        .eol-mark { color: #aaa; font-size: 11px; margin-left: 4px; border: 1px solid #ddd; padding: 0 2px; border-radius: 2px; background: #f9f9f9; }
+
+        .diff-statusbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f3f5;
+            padding: 5px 10px;
+            font-size: 12px;
+            color: #333;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            font-family: monospace;
+            margin-top: auto;
+        }
+        
+        .lang-switcher {
+            position: fixed;
+            top: 10px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .lang-switcher button {
+            padding: 4px 8px;
+            margin-left: 3px;
+            font-size: 12px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .lang-switcher button:hover {
+            background: #0078d7;
+            color: white;
+        }
+        
+        .file-picker-btn {
+            display: inline-block;
+            padding: 2px 10px;
+            border: 1px solid #999;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        #fileNameDisplay {
+            font-size: 13px;
+            color: #333;
+        
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="lang-switcher">
+        <button onclick="switchLang('ja')">日本語</button>
+        <button onclick="switchLang('zh')">中文</button>
+        <button onclick="switchLang('en')">English</button>
+        <button onclick="switchLang('de')">Deutsch</button>
+        <button onclick="switchLang('es')">Español</button>
+        <button onclick="switchLang('fr')">Français</button>
+    </div>
+
+    <h2 id="titleMain">
+        万能テキスト整形・置換ツール(Ver2026.10.14初版)
+    </h2>
+    
+    <!-- 0. 文件直接处理 -->
+    <div class="box file-section">
+        <h3 id="sec0">0. ファイル直接読み込み・保存（改行コードを完全維持）</h3>
+        <p style="font-size: 13px; color: #555; margin-top: 0;">※ 推荐：直接上传原文件处理并下载新文件，可 100% 保证长代码行不被切断，右下角改行文字コード完美保持一致！</p>
+        <label for="fileInput" class="file-picker-btn">ファイルの選択</label>
+        <input type="file" id="fileInput" onchange="loadFromFile(this)" hidden>
+        <span id="fileNameDisplay">ファイルが選択されていません</span>
+        <div id="detectedInfo" class="info"></div>
+    </div>
+
+    <!-- 1. 行頭の削除/追加設定 -->
+    <div class="box">
+        <h3 id="sec1">1. 行頭の編集（削除または追加）</h3>
+        
+        <label>
+            <input type="radio" name="mode" value="chars" checked> 指定した文字数（先頭から）を削除：
+            <input type="number" id="charsCount" value="0" min="0" style="width: 50px;"> 文字
+        </label>
+        <label>
+            <input type="radio" name="mode" value="pattern"> 特定の文字（例: <code>> </code> など）を先頭から削除：
+            <input type="text" id="targetPattern" value="> " style="width: 150px;">
+        </label>
+        <label>
+            <input type="radio" name="mode" value="addPrefix"> すべての行の先頭に特定の文字を追加：
+            <input type="text" id="prefixText" value="> " style="width: 150px;" placeholder="例: > ">
+        </label>
+
+        <label style="margin-top: 10px;">
+            <!-- <input type="checkbox" id="trimOption" checked> 処理後（削除時など）、各行の前後にある余分な空白を自動でトリムする -->
+            <input type="checkbox" id="trimOption"> 処理後（削除時など）、各行の前後にある余分な空白を自動でトリムする
+        </label>
+    </div>
+
+    <!-- 2. 置換設定 -->
+    <div class="box">
+        <h3 id="sec2">2. 文本置換（文字列の置き換え）</h3>
+        <!-- <p style="font-size: 13px; color: #666; margin-top: 0;">例: 「全角スペース → 半角スペース」や「新橋 → 東京」など</p> -->
+        <!-- <p style="font-size: 13px; color: #666; margin-top: 0;">eg: 「　 →  」や「新橋 → 東京」など</p> -->
+        <p style="font-size: 13px; color: #666; margin-top: 0;">
+          eg: 「<span title="全角スペース（U+3000）" style="background:#ffeb3b;padding:0 4px;cursor:help;">□</span>(全角スペース)
+          →
+          <span title="半角スペース（U+0020）" style="background:#90caf9;padding:0 4px;cursor:help;">␠</span>(半角スペース)」
+          や「新橋 → 東京」など
+        </p>
+        <div id="replaceList">
+            <div class="replace-row">
+                <input type="text" class="fromText" placeholder="検索ワード" value="">
+                <span>➔</span>
+                <input type="text" class="toText" placeholder="置換後" value="">
+                <button type="button" class="btn-small" onclick="removeRow(this)">削除</button>
+            </div>
+        </div>
+        <button type="button" class="btn-small" onclick="addRow()">＋ 置換ルールを追加</button>
+    </div>
+
+    <!-- 3. 改行コード指定 -->
+    <div class="box">
+        <h3 id="sec3">3. 改行コードの指定</h3>
+        <label>
+            出力する改行コード: 
+            <select id="lineEnding">
+                <option value="LF">LF (\n) [Linux / Mac / 右下角 LF]</option>
+                <option value="CRLF" selected>CRLF (\r\n) [Windows 標準 / 右下角 CRLF]</option>
+            </select>
+        </label>
+    </div>
+
+    <!-- 4. 入出力 -->
+    <div class="box">
+        <h3 id="sec4">4. テキスト処理（テキストエリア版）</h3>
+        
+        <div class="warn-box">
+            <b>💡 使用提示（重要）：</b><br>
+            由于浏览器文本框（textarea）的底层机制，如果在上方直接粘贴包含超长代码行的文本，可能会在复制时导致长行被强制折断。<br>
+            <b>建议：</b>如需处理长代码文件，请直接使用上方的 <b>“0. ファイル直接読み込み・保存”</b> 进行文件上传与下载！
+        </div>
+
+        <label>入力テキスト:</label>
+        <textarea id="inputText" placeholder="ここにテキストを貼り付けてください..."></textarea>
+        
+        <button onclick="processText()" style="background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">変換する</button>
+        <button onclick="copyOutput()" style="background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">結果をコピー</button>
+        <button onclick="downloadOutput()" style="background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">結果をファイル保存</button>
+        <span id="copyMsg" class="status-msg" style="display:none;">コピーしました！</span>
+
+        <label style="margin-top: 20px;">出力結果:</label>
+        <textarea id="outputText" readonly></textarea>
+    </div>
+
+    <!-- 5. WinMerge 风专业左右对比预览模块 -->
+    <div class="box" style="background: #f1f3f5;">
+        <h3 id="sec5">5. 左右文面比較プレビュー（WinMerge風プロ版）</h3>
+        <p style="font-size: 13px; color: #555; margin-top: 0;">点击下方按钮进行并排比对。完美修复标签高亮，让代码呈现如 Sakura Editor 般的蓝色标签与绿色注释效果！</p>
+        <button onclick="openDiffViewer()" style="background: #6f42c1; color: white; border: none; border-radius: 4px; cursor: pointer;">🔍 比較ビューを開く / 更新する</button>
+        
+        <div class="diff-layout">
+            <!-- 最左侧差异概览导航条 -->
+            <div id="overviewBar" class="diff-overview-bar"></div>
+
+            <div class="diff-container">
+                <!-- 左侧面板 -->
+                <div class="diff-pane">
+                    <h4>左側：入力（変更前）</h4>
+                    <div id="diffLeft" class="diff-viewer" onmousemove="updateCursorPos(event, 'left')" onscroll="syncScroll('left')"></div>
+                    <div class="diff-statusbar">
+                        <span id="statusLeft">行: 1 列: 1</span>
+                        <span id="encodingLeft">UTF-8</span>
+                    </div>
+                </div>
+                <!-- 右侧面板 -->
+                <div class="diff-pane">
+                    <h4>右側：出力（変更後）</h4>
+                    <div id="diffRight" class="diff-viewer" onmousemove="updateCursorPos(event, 'right')" onscroll="syncScroll('right')"></div>
+                    <div class="diff-statusbar">
+                        <span id="diffSummary" style="color: #d9534f; font-weight: bold;">0 個の差異が見つかりました</span>
+                        <span id="statusRight">行: 1 列: 1</span>
+                        <span id="encodingRight">UTF-8</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const LANG = {
+
+            ja: {
+                title: "万能テキスト整形・置換ツール(Ver2026.10.14初版)",
+                sec0: "0. ファイル直接読み込み・保存（改行コードを完全維持）",
+                sec1: "1. 行頭の編集（削除または追加）",
+                sec2: "2. 文本置換（文字列の置き換え）",
+                sec3: "3. 改行コードの指定",
+                sec4: "4. テキスト処理（テキストエリア版）",
+                sec5: "5. 左右文面比較プレビュー（WinMerge風プロ版）"
+            },
+        
+            zh: {
+                title: "万能文本整理・替换工具(Ver2026.10.14初版)",
+                sec0: "0. 文件读取与保存（完整保持换行符）",
+                sec1: "1. 行首编辑（删除或添加）",
+                sec2: "2. 文本替换",
+                sec3: "3. 换行符设置",
+                sec4: "4. 文本处理",
+                sec5: "5. 左右对比预览"
+            },
+        
+            en: {
+                title: "Universal Text Formatter & Replace Tool",
+                sec0: "0. File Load & Save",
+                sec1: "1. Line Prefix Editing",
+                sec2: "2. Text Replacement",
+                sec3: "3. Line Ending Settings",
+                sec4: "4. Text Processing",
+                sec5: "5. Side-by-Side Diff Preview"
+            },
+        
+            de: {
+                title: "Universelles Textformatierungswerkzeug",
+                sec0: "0. Datei laden und speichern",
+                sec1: "1. Zeilenanfang bearbeiten",
+                sec2: "2. Textersetzung",
+                sec3: "3. Zeilenumbruch-Einstellungen",
+                sec4: "4. Textverarbeitung",
+                sec5: "5. Vergleichsansicht"
+            },
+        
+            es: {
+                title: "Herramienta Universal de Texto",
+                sec0: "0. Cargar y guardar archivo",
+                sec1: "1. Editar inicio de línea",
+                sec2: "2. Reemplazo de texto",
+                sec3: "3. Configuración de saltos de línea",
+                sec4: "4. Procesamiento de texto",
+                sec5: "5. Vista comparativa"
+            },
+        
+            fr: {
+                title: "Outil Universel de Texte",
+                sec0: "0. Charger et enregistrer",
+                sec1: "1. Modifier le début de ligne",
+                sec2: "2. Remplacement de texte",
+                sec3: "3. Paramètres de fin de ligne",
+                sec4: "4. Traitement du texte",
+                sec5: "5. Vue de comparaison"
+            }
+        
+        };
+        
+        let fileContentBytes = null; 
+        let leftFileEnding = 'LF';   
+        let rightFileEnding = 'CRLF'; 
+
+        function addRow(from = '', to = '') {
+            const container = document.getElementById('replaceList');
+            const div = document.createElement('div');
+            div.className = 'replace-row';
+            div.innerHTML = `
+                <input type="text" class="fromText" placeholder="検索ワード" value="${from}">
+                <span>➔</span>
+                <input type="text" class="toText" placeholder="置換後" value="${to}">
+                <button type="button" class="btn-small" onclick="removeRow(this)">削除</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeRow(btn) {
+            const row = btn.parentElement;
+            if (document.querySelectorAll('.replace-row').length > 1) {
+                row.remove();
+            } else {
+                row.querySelector('.fromText').value = '';
+                row.querySelector('.toText').value = '';
+            }
+        }
+
+        function loadFromFile(input) {
+            if (input.files.length === 0) return;
+            document.getElementById('outputText').value = '';
+            
+            const file = input.files[0];
+            document.getElementById("fileNameDisplay").textContent = file.name;
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const content = e.target.result;
+                fileContentBytes = content;
+                alert(file.name);
+                document.getElementById('inputText').value = content;
+                
+                const infoDiv = document.getElementById('detectedInfo');
+                const lineEndingSelect = document.getElementById('lineEnding');
+                const encLeft = document.getElementById('encodingLeft');
+                
+                if (content.includes('\r\n')) {
+                    leftFileEnding = 'CRLF';
+                    lineEndingSelect.value = 'CRLF';
+                    infoDiv.textContent = '【検出結果】原文件换行符为：CRLF (Windows 标准，对应右下角 CRLF)';
+                    infoDiv.style.color = '#007bff';
+                    encLeft.textContent = 'UTF-8 / CRLF';
+                } else {
+                    leftFileEnding = 'LF';
+                    lineEndingSelect.value = 'LF';
+                    infoDiv.textContent = '【検出結果】原文件换行符为：LF (Linux/Mac 标准，对应右下角 LF)';
+                    infoDiv.style.color = '#28a745';
+                    encLeft.textContent = 'UTF-8 / LF';
+                }
+                
+                alert('ファイル已成功加载，换行符已自动识别！');
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function executeProcessing(inputStr) {
+            const lines = inputStr.split(/\r\n|\r|\n/);
+            
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const shouldTrim = document.getElementById('trimOption').checked;
+            
+            const replaceRules = [];
+            document.querySelectorAll('.replace-row').forEach(row => {
+                const from = row.querySelector('.fromText').value;
+                if (from !== '') {
+                    const to = row.querySelector('.toText').value;
+                    replaceRules.push({ from, to });
+                }
+            });
+
+            const processed = lines.map(line => {
+                let processedLine = line;
+
+                if (mode === 'chars') {
+                    const count = parseInt(document.getElementById('charsCount').value) || 0;
+                    processedLine = processedLine.slice(count);
+                } else if (mode === 'pattern') {
+                    const pattern = document.getElementById('targetPattern').value;
+                    if (processedLine.startsWith(pattern)) {
+                        processedLine = processedLine.slice(pattern.length);
+                    }
+                } else if (mode === 'addPrefix') {
+                    const prefix = document.getElementById('prefixText').value;
+                    processedLine = prefix + processedLine;
+                }
+
+                if (shouldTrim && mode !== 'addPrefix') {
+                    processedLine = processedLine.trim();
+                }
+
+                replaceRules.forEach(rule => {
+                    processedLine = processedLine.split(rule.from).join(rule.to);
+                });
+
+                return processedLine;
+            });
+
+            const lineEndingChoice = document.getElementById('lineEnding').value;
+            rightFileEnding = lineEndingChoice; 
+            const ending = lineEndingChoice === 'CRLF' ? '\r\n' : '\n';
+            return processed.join(ending);
+        }
+
+        function processText() {
+            const input = document.getElementById('inputText').value;
+            if (!input) {
+                alert('请输入或导入文本！');
+                return;
+            }
+            const result = executeProcessing(input);
+            document.getElementById('outputText').value = result;
+            document.getElementById('encodingRight').textContent = `UTF-8 / ${rightFileEnding}`;
+        }
+
+        function copyOutput() {
+            const outputText = document.getElementById('outputText');
+            if (!outputText.value) {
+                alert('没有可复制的输出结果，请先点击「変換する」！');
+                return;
+            }
+            outputText.select();
+            navigator.clipboard.writeText(outputText.value).then(() => {
+                const msg = document.getElementById('copyMsg');
+                msg.style.display = 'inline';
+                setTimeout(() => { msg.style.display = 'none'; }, 2000);
+            });
+        }
+
+        function downloadOutput() {
+            let outputText = document.getElementById('outputText').value;
+            if (!outputText) {
+                const input = document.getElementById('inputText').value;
+                if (!input) {
+                    alert('没有可保存的内容！');
+                    return;
+                }
+                outputText = executeProcessing(input);
+                document.getElementById('outputText').value = outputText;
+            } else {
+                const input = document.getElementById('inputText').value;
+                outputText = executeProcessing(input);
+            }
+            
+            document.getElementById('encodingRight').textContent = `UTF-8 / ${rightFileEnding}`;
+
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}${String(now.getMilliseconds()).padStart(3, '0')}`;
+            const fileName = `processed_${timestamp}.html`;
+            
+            const blob = new Blob([outputText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function openDiffViewer() {
+            const leftRaw = document.getElementById('inputText').value;
+            let rightRaw = document.getElementById('outputText').value;
+            if (!rightRaw && leftRaw) {
+                rightRaw = executeProcessing(leftRaw);
+                document.getElementById('outputText').value = rightRaw;
+            }
+
+            document.getElementById('encodingRight').textContent = `UTF-8 / ${rightFileEnding}`;
+
+            const leftLines = leftRaw ? leftRaw.split(/\r\n|\r|\n/) : [];
+            const rightLines = rightRaw ? rightRaw.split(/\r\n|\r|\n/) : [];
+
+            const leftContainer = document.getElementById('diffLeft');
+            const rightContainer = document.getElementById('diffRight');
+            const overviewBar = document.getElementById('overviewBar');
+
+            leftContainer.innerHTML = '';
+            rightContainer.innerHTML = '';
+            overviewBar.innerHTML = '';
+
+            const maxLines = Math.max(leftLines.length, rightLines.length);
+            let diffCount = 0;
+            const lineEndingDifferent = leftFileEnding !== rightFileEnding;
+
+            for (let i = 0; i < maxLines; i++) {
+                const lText = leftLines[i] !== undefined ? leftLines[i] : '';
+                const rText = rightLines[i] !== undefined ? rightLines[i] : '';
+                
+                let isDiff = lText !== rText;
+                if (!isDiff && lineEndingDifferent) {
+                    isDiff = true; 
+                }
+
+                const lLineDiv = document.createElement('div');
+                const rLineDiv = document.createElement('div');
+
+                lLineDiv.className = 'diff-line' + (isDiff ? ' line-diff' : '');
+                lLineDiv.setAttribute('data-text', lText);
+                
+                rLineDiv.className = 'diff-line' + (isDiff ? ' line-diff' : '');
+                rLineDiv.setAttribute('data-text', rText);
+
+                if (isDiff) {
+                    diffCount++;
+                    const mark = document.createElement('div');
+                    mark.className = 'overview-mark';
+                    const topPercent = (i / maxLines) * 100;
+                    mark.style.top = topPercent + '%';
+                    
+                    mark.onclick = (function(targetLine) {
+                        return function() {
+                            const leftViewer = document.getElementById('diffLeft');
+                            const rightViewer = document.getElementById('diffRight');
+                            const offsetTop = targetLine.offsetTop;
+                            leftViewer.scrollTop = offsetTop;
+                            rightViewer.scrollTop = offsetTop;
+                        };
+                    })(lLineDiv);
+
+                    overviewBar.appendChild(mark);
+                }
+
+                // 💡 正确的做法：先对整行内容进行安全的语法高亮渲染，绝不把字符红底差分标签硬塞进原文
+                //const lHtml = syntaxHighlight(lText);
+                //const rHtml = syntaxHighlight(rText);
+                let lHtml;
+                let rHtml;
+                
+                if (isDiff) {
+                
+                    const diffResult =
+                        buildCharDiff(lText, rText);
+                
+                    lHtml =
+                        syntaxHighlightDiffHtml(
+                            diffResult.left
+                        );
+                
+                    rHtml =
+                        syntaxHighlightDiffHtml(
+                            diffResult.right
+                        );
+                
+                } else {
+                
+                    lHtml = syntaxHighlight(lText);
+                    rHtml = syntaxHighlight(rText);
+                }
+
+
+                lLineDiv.innerHTML = `<div class="line-num">${i + 1}</div><div class="line-content">${lHtml}<span class="eol-mark">[${leftFileEnding}]</span></div>`;
+                rLineDiv.innerHTML = `<div class="line-num">${i + 1}</div><div class="line-content">${rHtml}<span class="eol-mark">[${rightFileEnding}]</span></div>`;
+                
+                leftContainer.appendChild(lLineDiv);
+                rightContainer.appendChild(rLineDiv);
+            }
+
+            document.getElementById('diffSummary').textContent = `${diffCount} 個の差異が見つかりました`;
+        }
+
+        function buildCharDiff(leftText, rightText) {
+        
+            const m = leftText.length;
+            const n = rightText.length;
+        
+            const dp = Array(m + 1)
+                .fill(null)
+                .map(() => Array(n + 1).fill(0));
+        
+            for (let i = m - 1; i >= 0; i--) {
+                for (let j = n - 1; j >= 0; j--) {
+        
+                    if (leftText[i] === rightText[j]) {
+                        dp[i][j] = dp[i + 1][j + 1] + 1;
+                    } else {
+                        dp[i][j] = Math.max(
+                            dp[i + 1][j],
+                            dp[i][j + 1]
+                        );
+                    }
+                }
+            }
+        
+            let i = 0;
+            let j = 0;
+        
+            let leftHtml = '';
+            let rightHtml = '';
+        
+            while (i < m && j < n) {
+        
+                if (leftText[i] === rightText[j]) {
+        
+                    leftHtml += escapeHtml(leftText[i]);
+                    rightHtml += escapeHtml(rightText[j]);
+        
+                    i++;
+                    j++;
+        
+                } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+        
+                    leftHtml +=
+                        `<span class="char-diff">${escapeHtml(leftText[i])}</span>`;
+        
+                    i++;
+        
+                } else {
+        
+                    rightHtml +=
+                        `<span class="char-diff">${escapeHtml(rightText[j])}</span>`;
+        
+                    j++;
+                }
+            }
+        
+            while (i < m) {
+        
+                leftHtml +=
+                    `<span class="char-diff">${escapeHtml(leftText[i])}</span>`;
+        
+                i++;
+            }
+        
+            while (j < n) {
+        
+                rightHtml +=
+                    `<span class="char-diff">${escapeHtml(rightText[j])}</span>`;
+        
+                j++;
+            }
+        
+            return {
+                left: leftHtml,
+                right: rightHtml
+            };
+        }
+
+        function syntaxHighlightDiffHtml(html) {
+        
+            html = html.replace(
+                /(&lt;\/?)([a-zA-Z0-9\-]+)/g,
+                '$1<span class="syn-tag">$2</span>'
+            );
+        
+            return html;
+        }
+        
+        // 💡 完美的纯净语法高亮引擎：只包裹样式，不破坏文本结构
+        function syntaxHighlight(text) {
+            let safeText = escapeHtml(text);
+
+            // 1. 注释染成绿色
+            if (safeText.trim().startsWith('&lt;!--') && safeText.trim().endsWith('--&gt;')) {
+                return `<span class="syn-comment">${safeText}</span>`;
+            }
+
+            // 2. 标签名染成深蓝色（精准匹配 <tag 或 </tag 中的标签名字）
+            safeText = safeText.replace(/(&lt;\/?)([a-zA-Z0-9\-]+)/g, '$1<span class="syn-tag">$2</span>');
+
+            return safeText;
+        }
+
+        function syncScroll(source) {
+            const leftViewer = document.getElementById('diffLeft');
+            const rightViewer = document.getElementById('diffRight');
+            if (source === 'left') {
+                rightViewer.scrollTop = leftViewer.scrollTop;
+                rightViewer.scrollLeft = leftViewer.scrollLeft;
+            } else {
+                leftViewer.scrollTop = rightViewer.scrollTop;
+                leftViewer.scrollLeft = rightViewer.scrollLeft;
+            }
+        }
+
+        function updateCursorPos(event, pane) {
+            const target = event.target.closest('.diff-line');
+            if (!target) return;
+            const lineNum = target.querySelector('.line-num').textContent;
+            const contentDiv = target.querySelector('.line-content');
+            const fullText = target.getAttribute('data-text') || '';
+            
+            const rect = contentDiv.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const charWidth = 7.8; 
+            let colNum = Math.floor(clickX / charWidth) + 1;
+            
+            if (colNum < 1) colNum = 1;
+            if (colNum > fullText.length + 1) colNum = fullText.length + 1;
+
+            const statusId = pane === 'left' ? 'statusLeft' : 'statusRight';
+            document.getElementById(statusId).textContent = `行: ${lineNum} 列: ${colNum}`;
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        function switchLang(lang) {
+
+            const t = LANG[lang];
+        
+            if (!t) return;
+        
+            document.documentElement.lang = lang;
+        
+            document.getElementById('titleMain').textContent = t.title;
+        
+            document.getElementById('sec0').textContent = t.sec0;
+            document.getElementById('sec1').textContent = t.sec1;
+            document.getElementById('sec2').textContent = t.sec2;
+            document.getElementById('sec3').textContent = t.sec3;
+            document.getElementById('sec4').textContent = t.sec4;
+            document.getElementById('sec5').textContent = t.sec5;
+        
+            localStorage.setItem("uiLang", lang);
+        }
+        
+        window.addEventListener("load", () => {
+
+            const savedLang =
+                localStorage.getItem("uiLang") || "ja";
+        
+            switchLang(savedLang);
+        
+        });
+    </script>
+</body>
+</html>
