@@ -140,6 +140,51 @@
         
             flex: 1;
         }
+        
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            
+            /* これが重要！ */
+            min-width: 0;   /* 子要素（textarea）が縮むのを妨げない */
+            /* overflow: auto; */ /* ← textarea が横に伸びても親を押し広げない */
+            /* overflow: hidden; */    /* 親が押し広げられないようにする */
+            overflow: visible;   /* ← これが最重要！ ハンドルが隠れなくなる */
+            
+            width: auto !important;
+        }
+
+        #inputText {
+            /* width: 100%; ← これを消す！ */
+            /* width: auto !important; */  /* ← これで縮められるようになる */
+            /* min-height: 200px; */
+            /* resize: vertical; */ /* ← ユーザーが縦方向だけ伸ばせる */
+            resize: both; /* ← 横・縦どちらも自由に伸ばせる */
+            /* margin-top: 10px; */ /* textarea とボタンの距離を確保 */
+            min-width: 0; /* 子自身の縮小を許可 */
+            /* max-width: 100%; */    /* ← 親コンテナを絶対に超えない（重要） */
+            box-sizing: border-box;
+            white-space: pre-wrap !important;   /* ← 折り返しを許可する（最重要） */
+            word-wrap: break-word !important;   /* ← 長い行でも縮められる */
+            overflow-x: auto !important;        /* ← 内容幅に引きずられない */
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #outputText {
+            white-space: pre-wrap !important;   /* ← 折り返しを許可する（最重要） */
+            word-wrap: break-word !important;   /* ← 長い行でも縮められる */
+            overflow-x: auto !important;        /* ← 内容幅に引きずられない */
+            /* width: auto !important; */            /* ← 100% を解除する */
+            min-width: 0;
+            resize: both;
+            box-sizing: border-box;
+        }
+
     </style>
 </head>
 <body>
@@ -234,16 +279,21 @@
             <b>建议：</b>如需处理长代码文件，请直接使用上方的 <b>“0. ファイル直接読み込み・保存”</b> 进行文件上传与下载！
         </div>
 
-        <label>入力テキスト:</label>
-        <textarea id="inputText" placeholder="ここにテキストを貼り付けてください..."></textarea>
-        
-        <button onclick="processText()" style="background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">変換する</button>
-        <button onclick="copyOutput()" style="background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">結果をコピー</button>
-        <button onclick="downloadOutput()" style="background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">結果をファイル保存</button>
-        <span id="copyMsg" class="status-msg" style="display:none;">コピーしました！</span>
+        <div class="input-area">
+          <label>入力テキスト:</label>
+          <textarea id="inputText" placeholder="ここにテキストを貼り付けてください..."></textarea>
+          
+          <div class="btn-row">
+            <button onclick="processText()" style="background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">変換する</button>
+            <button onclick="copyOutput()" style="background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">結果をコピー</button>
+            <button onclick="downloadOutput()" style="background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">結果をファイル保存</button>
+            <span id="copyMsg" class="status-msg" style="display:none;">コピーしました！</span>
+          </div>
+          
+          <label style="margin-top: 20px;">出力結果:</label>
+          <textarea id="outputText" readonly></textarea>
+        </div>
 
-        <label style="margin-top: 20px;">出力結果:</label>
-        <textarea id="outputText" readonly></textarea>
     </div>
 
     <!-- 5. WinMerge 风专业左右对比预览模块 -->
@@ -383,7 +433,7 @@
             reader.onload = function(e) {
                 const content = e.target.result;
                 fileContentBytes = content;
-                alert(file.name);
+                // alert(file.name);
                 document.getElementById('inputText').value = content;
                 
                 const infoDiv = document.getElementById('detectedInfo');
